@@ -179,8 +179,6 @@ const idata = [
               Lihat Detail
             </button>
           </div>
-
-          <!-- Footer -->
           <div class="flex justify-between items-center mt-4">
             <p class="text-xl font-bold">Rp.99.000</p>
             <p class="text-green-600 font-bold">STATUS BERHASIL</p>
@@ -191,7 +189,6 @@ const idata = [
         <div
           class="bg-gradient-to-r from-[#E3F0FF] to-[#DFF5FF] rounded-xl shadow-md p-4"
         >
-          <!-- Header -->
           <div class="flex justify-between items-start mb-3">
             <div class="flex items-start gap-4">
               <img
@@ -222,8 +219,6 @@ const idata = [
               Lihat Detail
             </button>
           </div>
-
-          <!-- Footer -->
           <div class="flex justify-between items-center mt-4">
             <p class="text-xl font-bold">Rp.99.000</p>
             <p class="text-green-600 font-bold">STATUS BERHASIL</p>
@@ -262,11 +257,7 @@ const idata = [
         >
           <!-- Kiri: Icon + Text -->
           <div class="flex items-center space-x-3">
-            <img
-              src="~/assets/images/wa.png"
-              alt="WhatsApp"
-              class="w-6 h-6"
-            />
+            <img src="~/assets/images/wa.png" alt="WhatsApp" class="w-6 h-6" />
             <span class="text-[#111827] font-semibold">Admin Konek Plus</span>
           </div>
 
