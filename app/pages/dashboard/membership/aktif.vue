@@ -2,23 +2,23 @@
 const idata = [
   {
     title: "Netflix",
-    image: "/src/assets/images/netflix.png",
+    image: "/images/netflix.png",
   },
   {
     title: "Spotify",
-    image: "/src/assets/images/spotify.png",
+    image: "/images/spotify.png",
   },
   {
     title: "VIU",
-    image: "/src/assets/images/viu_full.png",
+    image: "/images/viu_full.png",
   },
   {
     title: "Chat GPT",
-    image: "/src/assets/images/chatgpt.png",
+    image: "/images/chatgpt.png",
   },
   {
     title: "WeTV",
-    image: "/src/assets/images/wetv.png",
+    image: "/images/wetv.png",
   },
 ];
 </script>
@@ -111,7 +111,7 @@ const idata = [
 
   <!-- product -->
   <section class="pt-[10px]">
-    <div class="container mx-auto px-5 lg:px-6">
+    <div class="container mx-auto px-5 lg:px-16">
       <h2 class="text-3xl md:text-4xl font-bold text-gray-900">
         Produk Digital
       </h2>
@@ -136,7 +136,7 @@ const idata = [
 
   <!-- history -->
   <section>
-    <div class="container mx-auto px-6 lg:py-8">
+    <div class="container mx-auto px-6 lg:px-16 lg:py-8">
       <div class="flex justify-between items-center mb-4">
         <h1 class="text-xl md:text-4xl font-semibold text-gray-900">
           Histori Pembelian
