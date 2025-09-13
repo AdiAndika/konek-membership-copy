@@ -1,28 +1,3 @@
-<script setup>
-const idata = [
-  {
-    title: "Netflix",
-    image: "/images/netflix.png",
-  },
-  {
-    title: "Spotify",
-    image: "/images/spotify.png",
-  },
-  {
-    title: "VIU",
-    image: "/images/viu_full.png",
-  },
-  {
-    title: "Chat GPT",
-    image: "/images/chatgpt.png",
-  },
-  {
-    title: "WeTV",
-    image: "/images/wetv.png",
-  },
-];
-</script>
-
 <template>
   <!-- content dashboard -->
   <section
@@ -56,136 +31,64 @@ const idata = [
         <h2
           class="text-[#374151] font-[Outfit] text-[22px] lg:text-[24px] font-semibold mb-2"
         >
-          30 September 2025
+          Paket Membership Kosong
         </h2>
-        <div class="flex justify-center items-center gap-2 mb-3">
-          <img class="w-5 h-5" src="~/assets/images/calender.png" alt="" />
-          <h3>Masa Aktif</h3>
-        </div>
+        <p
+          class="lg:w-[400px] mx-auto text-center text-[#374151] font-[Outfit] lg:text-[20px] mb-6"
+        >
+          Ayo langganan sekarang, nikmati berbagai hiburan dan edukasi menarik
+        </p>
+        <button
+          class="flex items-center justify-center gap-2 w-full py-3 rounded-[12px] bg-[#1D9BF0] text-white font-[Outfit] text-[16px] font-semibold"
+        >
+          <img src="~/assets/images/cart.png" alt="cart" class="w-5 h-5" />
+          Langganan Sekarang
+        </button>
       </div>
+    </div>
+    <div class="my-4 flex justify-center">
+      <img
+        class="w-[400px] md:w-[500px] lg:w-[600px] h-auto"
+        src="~/assets/images/icon-langganan.png"
+        alt="icon langganan"
+      />
     </div>
   </section>
 
   <!-- product -->
-  <section class="pt-[10px]">
-    <div class="container mx-auto px-5 lg:px-16">
+  <section
+    class="pt-[10px] pb-[60px] bg-gradient-to-b from-white via-blue-50 to-blue-500"
+  >
+    <div class="container mx-auto px-3 lg:px-6 text-center">
       <h2 class="text-3xl md:text-4xl font-bold text-gray-900">
-        Produk Digital
+        Langganan Sekarang! Cuma Rp.99.000 per bulan
       </h2>
-      <div>
-        <div
-          v-for="(item, index) in idata"
-          :key="index"
-          class="flex justify-between items-center"
-        >
+      <div class="mt-10 max-w-sm mx-auto">
+        <a href="#" aria-label="Langganan Sekarang">
           <img
-            :src="item.image"
-            :alt="item.title"
-            class="w-24 h-24 object-contain"
+            src="~/assets/images/card-promo.svg"
+            alt="Kartu Promo Konek Entertainment"
+            class="w-full h-auto"
           />
-          <a href="#">
-            <button class="text-[#0080FF] font-semibold">Lihat akun</button>
-          </a>
+        </a>
+
+        <div class="mt-8">
+          <button
+            class="w-full bg-white text-[#0694FF] font-bold py-3 px-6 rounded-full flex items-center justify-center space-x-3 shadow-lg hover:scale-105"
+          >
+            <img
+              src="~/assets/images/keranjang.svg"
+              alt="Ikon Keranjang"
+              class="w-8 h-8"
+            />
+            <span class="text-[22px]">Langganan Sekarang</span>
+          </button>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- history -->
-  <section>
-    <div class="container mx-auto px-6 lg:px-16 lg:py-8">
-      <div class="flex justify-between items-center mb-4">
-        <h1 class="text-xl md:text-4xl font-semibold text-gray-900">
-          Histori Pembelian
-        </h1>
-        <p class="text-[#0080FF] font-semibold">Histori Tagihan</p>
-      </div>
-      <div class="w-full lg:max-w-[500px] mx-auto lg:p-4 mb-3 lg:mb-0">
-        <div
-          class="bg-gradient-to-r from-[#E3F0FF] to-[#DFF5FF] rounded-xl shadow-md p-4"
-        >
-          <div class="flex justify-between items-start mb-3">
-            <div class="flex items-start gap-4">
-              <img
-                src="~/assets/images/logo-konek-biru.png"
-                alt="Konek Market"
-                class="w-16 h-auto"
-              />
-              <div>
-                <p class="text-sm lg:text-lg font-medium mb-2">
-                  Konek Entertainment
-                </p>
-                <div class="text-sm text-gray-800 space-y-1">
-                  <p>
-                    ID Pesanan:
-                    <span class="font-medium">KNX-20250828-ABC123</span>
-                  </p>
-                  <p>
-                    Tanggal: <span class="font-medium">27 September 2025</span>
-                  </p>
-                  <p>
-                    Metode Bayar:
-                    <span class="font-medium">QRIS (via GoPay)</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-            <button
-              class="bg-gradient-to-r from-[#0080FF] to-[#4DC9E6] text-white text-sm px-3 py-1 rounded-md font-medium"
-            >
-              Lihat Detail
-            </button>
-          </div>
-          <div class="flex justify-between items-center mt-4">
-            <p class="text-xl font-bold">Rp.99.000</p>
-            <p class="text-green-600 font-bold">STATUS BERHASIL</p>
-          </div>
-        </div>
-      </div>
-      <div class="lg:max-w-[500px] mx-auto lg:p-4 mb-6 lg:mb-0">
-        <div
-          class="bg-gradient-to-r from-[#E3F0FF] to-[#DFF5FF] rounded-xl shadow-md p-4"
-        >
-          <div class="flex justify-between items-start mb-3">
-            <div class="flex items-start gap-4">
-              <img
-                src="~/assets/images/logo-konek-biru.png"
-                alt="Konek Market"
-                class="w-16 h-auto"
-              />
-              <div>
-                <p class="font-medium mb-2">Konek Entertainment</p>
-                <div class="text-sm text-gray-800 space-y-1">
-                  <p>
-                    ID Pesanan:
-                    <span class="font-medium">KNX-20250828-ABC123</span>
-                  </p>
-                  <p>
-                    Tanggal: <span class="font-medium">27 September 2025</span>
-                  </p>
-                  <p>
-                    Metode Bayar:
-                    <span class="font-medium">QRIS (via GoPay)</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-            <button
-              class="bg-gradient-to-r from-[#0080FF] to-[#4DC9E6] text-white text-sm px-3 py-1 rounded-md font-medium"
-            >
-              Lihat Detail
-            </button>
-          </div>
-          <div class="flex justify-between items-center mt-4">
-            <p class="text-xl font-bold">Rp.99.000</p>
-            <p class="text-green-600 font-bold">STATUS BERHASIL</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- contact -->
+  <!-- contact -->\
   <section>
     <div class="container mx-auto px-6 lg:py-8">
       <div class="max-w-md mx-auto bg-white rounded-lg">

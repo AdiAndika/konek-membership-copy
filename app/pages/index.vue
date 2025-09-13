@@ -1,23 +1,5 @@
 <template>
-  <header>
-    <div class="container px-4 lg:px-12 py-3">
-      <div class="flex justify-between items-center">
-        <a href="/">
-          <img class="h-10" src="~/assets/images/logo-konek-biru.png" alt="" />
-        </a>
-        <div>
-          <a href="/auth/login">
-            <button
-              id="login"
-              class="text-white font-bold text-lg py-1.5 px-10 rounded-full transition-colors"
-            >
-              Login
-            </button>
-          </a>
-        </div>
-      </div>
-    </div>
-  </header>
+  
 </template>
 
 <style>

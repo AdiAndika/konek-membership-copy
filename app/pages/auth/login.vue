@@ -1,5 +1,7 @@
 <script setup>
-// Di masa depan, Anda bisa menambahkan logika login di sini
+definePageMeta({
+  layout: "blanknav",
+});
 </script>
 
 <template>
