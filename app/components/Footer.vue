@@ -57,7 +57,7 @@
             </svg>
           </a>
         </div>
-        <p class="text-sm text-gray-500">Copyright © 2024 - Konek Market</p>
+        <p class="text-sm text-gray-500">Copyright © 2025 - Konek Market</p>
         <div class="text-sm text-gray-600 flex space-x-4">
           <a href="#" class="hover:underline">Syarataf & Ketentuan</a>
           <a href="#" class="hover:underline">Kebijakan Privasi</a>
