@@ -1,77 +1,61 @@
 <script setup>
 import { ref } from "vue";
+import { useRoute } from "vue-router";
 
+const route = useRoute();
+const isLoggedIn = ref(true); 
 const isOpen = ref(false);
 </script>
 
 <template>
-  <header>
+  <header class="shadow-sm relative">
     <div class="container px-4 lg:px-12 py-3">
       <div class="flex justify-between items-center">
-        <a href="/">
-          <img class="h-10" src="~/assets/images/logo-konek-biru.png" alt="" />
-        </a>
-        <div class="flex items-center gap-3">
-          <a class="hidden lg:block" href="/auth/login">
-            <button
-              id="login"
-              class="text-white font-bold text-lg py-1.5 px-10 rounded-full transition-colors"
-            >
-              Login
+        <router-link to="/">
+          <img class="h-10" src="~/assets/images/logo-konek-biru.png" alt="Logo" />
+        </router-link>
+
+        <div>
+          <nav class="hidden lg:flex items-center gap-8">
+            <template v-if="isLoggedIn">
+              <router-link to="#" class="font-semibold text-gray-700 hover:text-blue-500 transition" :class="{ 'text-blue-500 font-bold': route.path === '#' }">Beranda</router-link>
+              <router-link to="#" class="font-semibold text-gray-700 hover:text-blue-500 transition" :class="{ 'text-blue-500 font-bold': route.path === '#' }">Profile</router-link>
+              <a href="#" class="font-semibold text-gray-700 hover:text-red-500 transition">Logout</a>
+            </template>
+            <template v-else>
+              <router-link to="/login" class="text-white font-black py-2 px-6 rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 hover:shadow-lg hover:opacity-90 transition-all duration-300">
+                LOGIN
+              </router-link>
+            </template>
+          </nav>
+
+          <div class="lg:hidden">
+            <button v-if="isLoggedIn" @click="isOpen = !isOpen" class="w-8 h-8 flex flex-col justify-center items-center gap-1.5 z-50 transition-transform duration-300 ease-in-out" :class="isOpen ? 'rotate-90' : ''">
+              <span class="block w-6 h-0.5 bg-gray-800"></span>
+              <span class="block w-6 h-0.5 bg-gray-800"></span>
+              <span class="block w-6 h-0.5 bg-gray-800"></span>
             </button>
-          </a>
-          <button class="lg:hidden p-2" @click="isOpen = !isOpen">
-            <svg
-              v-if="!isOpen"
-              xmlns="http://www.w3.org/2000/svg"
-              class="w-6 h-6 text-gray-800"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-            <svg
-              v-else
-              xmlns="http://www.w3.org/2000/svg"
-              class="w-6 h-6 text-gray-800"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+            <router-link v-else to="/login" class="text-white font-black py-2 px-6 rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 hover:shadow-lg hover:opacity-90 transition-all duration-300">
+              LOGIN
+            </router-link>
+          </div>
         </div>
       </div>
-
-      <!-- Mobile Menu -->
-      <div
-        v-if="isOpen"
-        class="lg:hidden flex flex-col gap-4 mt-3 bg-white rounded-lg shadow px-6 py-4"
-      >
-        <a href="/" class="hover:text-blue-500 transition">Beranda</a>
-        <a href="/auth/login">
-          <button
-            id="login"
-            class="w-full text-white font-bold text-lg py-1 px-8 rounded-full transition-colors"
-          >
-            Login
-          </button>
-        </a>
-        <a href="" class="hover:text-blue-500 transition">Profile</a>
-        <a href="" class="hover:text-red-500 transition">Logout</a>
-      </div>
     </div>
+    
+    <Transition
+      enter-active-class="transition ease-out duration-200"
+      enter-from-class="transform opacity-0 -translate-y-2"
+      enter-to-class="transform opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-150"
+      leave-from-class="transform opacity-100 translate-y-0"
+      leave-to-class="transform opacity-0 -translate-y-2"
+    >
+      <div v-if="isOpen && isLoggedIn" class="lg:hidden flex flex-col bg-white shadow-lg absolute w-full left-0 divide-y divide-gray-200">
+        <router-link to="#" class="font-semibold text-gray-700 hover:text-blue-500 transition px-4 py-3" :class="{ 'text-blue-500 bg-blue-50': route.path === '#' }">Beranda</router-link>
+        <router-link to="#" class="font-semibold text-gray-700 hover:text-blue-500 transition px-4 py-3" :class="{ 'text-blue-500 bg-blue-50': route.path === '#' }">Profile</router-link>
+        <a href="#" class="font-semibold text-red-500 hover:text-red-600 transition px-4 py-3">Logout</a>
+      </div>
+    </Transition>
   </header>
 </template>
