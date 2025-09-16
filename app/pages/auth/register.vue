@@ -1,7 +1,26 @@
 <script setup>
+// PERUBAHAN DI SINI: 'import' dipindahkan ke baris paling atas
+import { ref, computed } from 'vue';
+
 definePageMeta({
   layout: "blanknav",
 });
+
+// --- STATE MANAGEMENT ---
+const phoneNumber = ref('');
+const isPhoneValid = computed(() => phoneNumber.value.length > 8);
+
+// --- METHODS ---
+// PERUBAHAN DI SINI: Tambahkan fungsi untuk mengirim OTP dan navigasi
+const sendOtp = () => {
+  if (isPhoneValid.value) {
+    console.log(`Mendaftarkan dan mengirim OTP ke nomor: +62${phoneNumber.value}`);
+    // Di sini Anda bisa menambahkan logika untuk API pendaftaran
+    
+    // Pindahkan pengguna ke halaman OTP
+    navigateTo('/auth/otp'); 
+  }
+};
 </script>
 
 <template>
@@ -77,16 +96,21 @@ definePageMeta({
               <span class="ml-2 text-gray-700 font-semibold">+62</span>
             </div>
             <input
+              v-model="phoneNumber"
               type="tel"
               id="phone-input"
-              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-24 p-3.5"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-200 focus:border-blue-500 block w-full pl-24 p-3.5"
               placeholder="Masukan no hp kamu"
             />
           </div>
 
           <button
+            @click="sendOtp"
+            :disabled="!isPhoneValid"
             type="button"
-            class="mt-[1.618rem] w-full text-white bg-gray-400 font-medium rounded-lg text-base px-5 py-3 text-center hover:bg-gray-500 transition-colors"
+            class="mt-[1.618rem] w-full text-white font-medium rounded-lg text-base px-5 py-3 text-center transition-colors 
+                   bg-blue-600 hover:bg-blue-700 
+                   disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             Kirim OTP
           </button>
@@ -94,7 +118,7 @@ definePageMeta({
           <p class="mt-[1.618rem] text-sm text-gray-600">
             Sudah Punya Akun?
             <router-link
-              to="/login"
+              to="/auth/login"
               class="font-bold text-blue-600 hover:underline"
               >Masuk Sekarang</router-link
             >

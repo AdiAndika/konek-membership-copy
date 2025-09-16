@@ -1,73 +1,83 @@
 <script setup>
+import { ref, computed } from 'vue';
+
 definePageMeta({
   layout: "blanknav",
 });
+
+// --- STATE MANAGEMENT ---
+const phoneNumber = ref('');
+const isPhoneValid = computed(() => phoneNumber.value.length > 8);
+const isLoading = ref(false);    // State untuk loading
+const showSplash = ref(false);  // State untuk splash screen
+
+// --- METHODS ---
+const login = async () => {
+  if (!isPhoneValid.value || isLoading.value) return;
+
+  isLoading.value = true;
+  console.log(`Login dengan nomor: +62${phoneNumber.value}`);
+
+  try {
+    // Simulasi API login yang berhasil setelah 1 detik
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log("Login API berhasil");
+
+    // Jika berhasil, tampilkan splash screen
+    showSplash.value = true; 
+    
+    // Tunggu 1.5 detik, lalu pindah ke dashboard
+    setTimeout(() => {
+      // Ganti dengan path dashboard Anda
+      navigateTo('/dashboard/membership/non-aktif');
+    }, 1500);
+
+  } catch (error) {
+    console.error("Login Gagal:", error);
+    alert("Login gagal, nomor telepon tidak terdaftar.");
+    isLoading.value = false;
+  }
+};
 </script>
 
 <template>
-  <div
-    class="bg-white md:bg-gray-50 min-h-screen flex flex-col md:justify-center md:items-center font-sans pt-8 md:pt-0"
-  >
-    <div
-      class="w-full md:max-w-md md:shadow-xl md:rounded-2xl md:bg-white flex flex-col"
-    >
-      <header
-        class="p-4 sm:p-6 flex items-center justify-between relative w-full flex-shrink-0"
-      >
-        <router-link
-          to="/"
-          class="flex items-center text-gray-700 font-semibold z-10"
-        >
-          <svg
-            class="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 19l-7-7 7-7"
-            ></path>
+  <div v-if="showSplash" class="w-screen min-h-screen bg-white flex flex-col justify-center items-center">
+    <div class="w-full max-w-sm flex flex-col items-center text-center animate-pulse">
+      <img src="~/assets/images/success-check.svg" alt="Login Berhasil" class="w-40 h-40 md:w-48 md:h-48 mb-6" />
+      <h1 class="text-2xl font-bold text-gray-800">
+        Anda Berhasil Log In
+      </h1>
+    </div>
+  </div>
+
+  <div v-else class="bg-white md:bg-gray-50 min-h-screen flex flex-col md:justify-center md:items-center font-sans pt-8 md:pt-0">
+    <div class="w-full md:max-w-md md:shadow-xl md:rounded-2xl md:bg-white flex flex-col">
+      <header class="p-4 sm:p-6 flex items-center justify-between relative w-full flex-shrink-0">
+        <router-link to="/" class="flex items-center text-gray-700 font-semibold z-10">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
           </svg>
           Kembali
         </router-link>
-
-        <div
-          class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        >
-          <img
-            src="~/assets/images/logo-konek-biru.png"
-            alt="Konek.id Logo"
-            class="h-8"
-          />
+        <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <img src="~/assets/images/logo-konek-biru.png" alt="Konek.id Logo" class="h-8" />
         </div>
       </header>
-
-      <main
-        class="flex-grow flex flex-col items-center text-center px-[1.618rem] sm:px-[2.618rem] pt-[1.618rem] pb-[4.236rem]"
-      >
+      <main class="flex-grow flex flex-col items-center text-center px-[1.618rem] sm:px-[2.618rem] pt-[1.618rem] pb-[4.236rem]">
         <div class="w-full max-w-sm">
           <div class="mb-[2.618rem]">
-            <h1
-              class="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight"
-            >
+            <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-tight">
               Selamat Datang Para Pencari Hiburan Digital
             </h1>
             <p class="mt-2 text-sm sm:text-base text-gray-600">
               Jangan terlalu banyak milih, coba aja dulu!!!!
             </p>
           </div>
-
           <h2 class="text-xl sm:text-2xl font-bold mb-[1.618rem]">
             Masuk Akun
           </h2>
-
           <div class="relative">
-            <div
-              class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"
-            >
+            <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <svg class="w-6 h-5" viewBox="0 0 21 15">
                 <g fill="none">
                   <path fill="#FFF" d="M0 0h21v15H0z" />
@@ -77,27 +87,32 @@ definePageMeta({
               <span class="ml-2 text-gray-700 font-semibold">+62</span>
             </div>
             <input
+              v-model="phoneNumber"
               type="tel"
               id="phone-input"
-              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full pl-24 p-3.5"
+              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-200 focus:border-blue-500 block w-full pl-24 p-3.5"
               placeholder="Masukan no hp kamu"
             />
           </div>
-
           <button
+            @click="login"
+            :disabled="!isPhoneValid || isLoading"
             type="button"
-            class="mt-[1.618rem] w-full text-white bg-gray-400 font-medium rounded-lg text-base px-5 py-3 text-center hover:bg-gray-500 transition-colors"
+            class="mt-[1.618rem] w-full text-white font-medium rounded-lg text-base px-5 py-3 text-center transition-colors 
+                   bg-blue-600 hover:bg-blue-700 
+                   disabled:bg-gray-400 disabled:cursor-not-allowed flex justify-center items-center"
           >
-            Masuk Akun
+            <svg v-if="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ isLoading ? 'Memproses...' : 'Masuk Akun' }}
           </button>
-
           <p class="mt-[1.618rem] text-sm text-gray-600">
             Belum Punya Akun?
-            <router-link
-              to="/auth/register"
-              class="font-bold text-blue-600 hover:underline"
-              >Daftar Gratis</router-link
-            >
+            <router-link to="/auth/register" class="font-bold text-blue-600 hover:underline">
+              Daftar Gratis
+            </router-link>
           </p>
         </div>
       </main>
