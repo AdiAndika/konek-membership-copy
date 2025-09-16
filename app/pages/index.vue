@@ -146,10 +146,10 @@ const faqs = [
             </a>
 
             <div class="mt-8">
-              <button class="w-full bg-white text-blue-500 font-bold py-4 px-6 rounded-full flex items-center justify-center space-x-3 shadow-lg hover:bg-gray-100 transition-colors transform hover:scale-105">
+              <NuxtLink to="/auth/login" class="w-full bg-white text-blue-500 font-bold py-4 px-6 rounded-full flex items-center justify-center space-x-3 shadow-lg hover:bg-gray-100 transition-colors transform hover:scale-105">
                 <img src="~/assets/images/keranjang.svg" alt="Ikon Keranjang" class="w-8 h-8">
-                <span class="24px text-lg">Langganan Sekarang</span>
-              </button>
+                <span class="text-lg">Langganan Sekarang</span>
+              </NuxtLink>
             </div>
           </div>
 

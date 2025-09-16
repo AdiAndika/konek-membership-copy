@@ -30,7 +30,7 @@ const isOpen = ref(false);
           </nav>
 
           <div class="lg:hidden">
-            <button v-if="isLoggedIn" @click="isOpen = !isOpen" class="w-8 h-8 flex flex-col justify-center items-center gap-1.5 z-50 transition-transform duration-300 ease-in-out" :class="isOpen ? 'rotate-180' : ''">
+            <button v-if="isLoggedIn" @click="isOpen = !isOpen" class="w-8 h-8 flex flex-col justify-center items-center gap-1.5 z-50 transition-transform duration-300 ease-in-out" :class="isOpen ? 'rotate-90' : ''">
               <span class="block w-6 h-0.5 bg-gray-800"></span>
               <span class="block w-6 h-0.5 bg-gray-800"></span>
               <span class="block w-6 h-0.5 bg-gray-800"></span>
