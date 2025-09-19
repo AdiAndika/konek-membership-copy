@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 definePageMeta({
-  layout: "landing",
+  layout: "default",
 });
 // Untuk mengelola status item FAQ yang aktif/terbuka
 const openFaq = ref(null);
