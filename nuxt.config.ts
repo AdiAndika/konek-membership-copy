@@ -1,4 +1,5 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
+// nuxt.config.ts
+
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
@@ -7,5 +8,14 @@ export default defineNuxtConfig({
   css: ["~/assets/css/main.css"],
   vite: {
     plugins: [tailwindcss()],
+    server: {
+      proxy: {
+        '/api': {
+          // GANTI URL INI
+          target: 'https://debug.openaccess.co.id', 
+          changeOrigin: true,
+        },
+      },
+    },
   },
 });

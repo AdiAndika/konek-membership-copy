@@ -1,56 +1,55 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { api } from '~/services/api';
+import { usePhoneNumber } from '~/composables/useState';
 
 definePageMeta({
   layout: "blanknav",
 });
 
-// --- STATE MANAGEMENT ---
+const phoneNumberState = usePhoneNumber();
 const phoneNumber = ref('');
 const isPhoneValid = computed(() => phoneNumber.value.length > 8);
-const isLoading = ref(false);    // State untuk loading
-const showSplash = ref(false);  // State untuk splash screen
+const isLoading = ref(false);
+const errorMessage = ref('');
 
-// --- METHODS ---
+const handleInput = () => {
+  errorMessage.value = '';
+};
+
 const login = async () => {
   if (!isPhoneValid.value || isLoading.value) return;
 
   isLoading.value = true;
-  console.log(`Login dengan nomor: +62${phoneNumber.value}`);
+  errorMessage.value = '';
 
   try {
-    // Simulasi API login yang berhasil setelah 1 detik
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log("Login API berhasil");
+    const response = await api.checkUserNumber(phoneNumber.value);
 
-    // Jika berhasil, tampilkan splash screen
-    showSplash.value = true; 
-    
-    // Tunggu 1.5 detik, lalu pindah ke dashboard
-    setTimeout(() => {
-      // Ganti dengan path dashboard Anda
-      navigateTo('/dashboard/membership/non-aktif');
-    }, 1500);
+    // Pemeriksaan eksplisit terhadap pesan sukses dari API
+    if (response && response.message === 'Otp Berhasil di generate') {
+      console.log('Respon API Sukses:', response.message);
+      
+      // Simpan nomor telepon dan lanjutkan ke halaman OTP
+      phoneNumberState.value = phoneNumber.value;
+      navigateTo('/auth/otp');
+    } else {
+      // Jika pesan tidak sesuai, anggap sebagai error dan lempar pesan tersebut
+      throw new Error(response.message || 'Terjadi kesalahan yang tidak diketahui');
+    }
 
   } catch (error) {
     console.error("Login Gagal:", error);
-    alert("Login gagal, nomor telepon tidak terdaftar.");
+    // Tampilkan pesan error apa pun di halaman, termasuk "Nomor belum terdaftar"
+    errorMessage.value = error.message;
+  } finally {
     isLoading.value = false;
   }
 };
 </script>
 
 <template>
-  <div v-if="showSplash" class="w-screen min-h-screen bg-white flex flex-col justify-center items-center">
-    <div class="w-full max-w-sm flex flex-col items-center text-center animate-pulse">
-      <img src="~/assets/images/success-check.svg" alt="Login Berhasil" class="w-40 h-40 md:w-48 md:h-48 mb-6" />
-      <h1 class="text-2xl font-bold text-gray-800">
-        Anda Berhasil Log In
-      </h1>
-    </div>
-  </div>
-
-  <div v-else class="bg-white md:bg-gray-50 min-h-screen flex flex-col md:justify-center md:items-center font-sans pt-8 md:pt-0">
+  <div class="bg-white md:bg-gray-50 min-h-screen flex flex-col md:justify-center md:items-center font-sans pt-8 md:pt-0">
     <div class="w-full md:max-w-md md:shadow-xl md:rounded-2xl md:bg-white flex flex-col">
       <header class="p-4 sm:p-6 flex items-center justify-between relative w-full flex-shrink-0">
         <router-link to="/" class="flex items-center text-gray-700 font-semibold z-10">
@@ -88,12 +87,18 @@ const login = async () => {
             </div>
             <input
               v-model="phoneNumber"
+              @input="handleInput"
               type="tel"
               id="phone-input"
               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-200 focus:border-blue-500 block w-full pl-24 p-3.5"
               placeholder="Masukan no hp kamu"
             />
           </div>
+          
+          <p v-if="errorMessage" class="text-red-500 text-sm mt-2">
+            {{ errorMessage }}
+          </p>
+
           <button
             @click="login"
             :disabled="!isPhoneValid || isLoading"
@@ -106,7 +111,7 @@ const login = async () => {
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            {{ isLoading ? 'Memproses...' : 'Masuk Akun' }}
+            {{ isLoading ? 'Memproses...' : 'Kirim Kode OTP' }}
           </button>
           <p class="mt-[1.618rem] text-sm text-gray-600">
             Belum Punya Akun?
@@ -119,7 +124,3 @@ const login = async () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Tidak ada style tambahan yang diperlukan. */
-</style>

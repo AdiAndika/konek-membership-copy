@@ -1,25 +1,31 @@
 <script setup>
-// PERUBAHAN DI SINI: 'import' dipindahkan ke baris paling atas
 import { ref, computed } from 'vue';
+import { ADMIN_WHATSAPP_NUMBER } from '~/utils/constants';
 
 definePageMeta({
   layout: "blanknav",
 });
 
-// --- STATE MANAGEMENT ---
 const phoneNumber = ref('');
+const isLoading = ref(false);
 const isPhoneValid = computed(() => phoneNumber.value.length > 8);
 
-// --- METHODS ---
-// PERUBAHAN DI SINI: Tambahkan fungsi untuk mengirim OTP dan navigasi
-const sendOtp = () => {
-  if (isPhoneValid.value) {
-    console.log(`Mendaftarkan dan mengirim OTP ke nomor: +62${phoneNumber.value}`);
-    // Di sini Anda bisa menambahkan logika untuk API pendaftaran
-    
-    // Pindahkan pengguna ke halaman OTP
-    navigateTo('/auth/otp'); 
-  }
+const registerViaWhatsApp = () => {
+  if (!isPhoneValid.value || isLoading.value) return;
+
+  isLoading.value = true;
+
+  // Format pesan HANYA berisi Username dan Email, sesuai permintaan Anda
+  const message = encodeURIComponent(
+    `Register\nUsername:\nEmail:`
+  );
+  
+  const whatsappUrl = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${message}`;
+
+  setTimeout(() => {
+    window.open(whatsappUrl, '_blank');
+    isLoading.value = false;
+  }, 500);
 };
 </script>
 
@@ -75,7 +81,7 @@ const sendOtp = () => {
               Selamat Datang Para Pencari Hiburan Digital
             </h1>
             <p class="mt-2 text-sm sm:text-base text-gray-600">
-              Jangan terlalu banyak milih, coba aja dulu!!!!
+              Masukkan nomor WhatsApp Anda untuk memulai pendaftaran.
             </p>
           </div>
 
@@ -105,17 +111,21 @@ const sendOtp = () => {
           </div>
 
           <button
-            @click="sendOtp"
-            :disabled="!isPhoneValid"
+            @click="registerViaWhatsApp"
+            :disabled="!isPhoneValid || isLoading"
             type="button"
-            class="mt-[1.618rem] w-full text-white font-medium rounded-lg text-base px-5 py-3 text-center transition-colors 
-                   bg-blue-600 hover:bg-blue-700 
-                   disabled:bg-gray-400 disabled:cursor-not-allowed"
+            class="mt-[1.618rem] w-full text-white font-medium rounded-lg text-base px-5 py-3 text-center transition-colors
+                   bg-blue-600 hover:bg-blue-700
+                   disabled:bg-gray-400 disabled:cursor-not-allowed flex justify-center items-center"
           >
-            Kirim OTP
+            <svg v-if="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            {{ isLoading ? 'Mengarahkan...' : 'Daftar via WhatsApp' }}
           </button>
 
-          <p class="mt-[1.618rem] text-sm text-gray-600">
+          <p class="mt-[2.618rem] text-sm text-gray-600">
             Sudah Punya Akun?
             <router-link
               to="/auth/login"
@@ -130,5 +140,5 @@ const sendOtp = () => {
 </template>
 
 <style scoped>
-/* Tidak ada style tambahan yang diperlukan. */
+/* Area ini seharusnya kosong atau hanya berisi CSS */
 </style>
