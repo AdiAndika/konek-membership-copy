@@ -1,27 +1,23 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useAuth } from '~/composables/useState'; // 1. Import state autentikasi
+import { useAuth } from '~/composables/useState';
 
 const route = useRoute();
 const router = useRouter();
-const auth = useAuth(); // 2. Panggil state autentikasi
+const auth = useAuth();
 
-// 3. Ganti `isLoggedIn` menjadi computed property yang memeriksa token
 const isLoggedIn = computed(() => !!auth.value.token); 
 const isOpen = ref(false);
 
-// 4. Buat fungsi logout
 const logout = () => {
-  // Hapus cookie autentikasi
   auth.value = { user: null, token: null };
-  // Arahkan ke halaman login
   router.push('/');
 };
 </script>
 
 <template>
-  <header class="shadow-sm relative">
+  <header class="shadow-sm relative z-50 bg-white">
     <div>
       <div class="flex justify-between items-center px-4 lg:px-12 py-3">
         <router-link to="/">
