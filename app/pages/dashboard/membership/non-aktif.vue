@@ -49,7 +49,7 @@
     <div class="my-4 flex justify-center">
       <img
         class="w-[400px] md:w-[500px] lg:w-[600px] h-auto"
-        src="~/assets/images/icon-langganan.png"
+        src="~/assets/images/icon-langganan.svg"
         alt="icon langganan"
       />
     </div>
