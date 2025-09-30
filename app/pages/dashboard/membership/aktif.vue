@@ -1,225 +1,240 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { accountsData } from '~/data/accounts.js';
 import AccountModal from '~/components/AccountModal.vue';
+import { api } from '~/services/api';
+import { useAuth } from '~/composables/useState';
 
+
+// --- State ---
+const userFullName = ref('Pengguna'); 
+const futureDate = new Date();
+futureDate.setDate(futureDate.getDate() + 21);
+const expiryDate = ref(futureDate);
+
+const auth = useAuth();
+
+// --- Lifecycle Hook untuk Mengambil Data Nama dari API ---
+onMounted(async () => {
+  if (auth.value.user && auth.value.user.id) {
+    try {
+      const response = await api.getUserDetail(auth.value.user.id);
+      if (response.data && response.data.full_name) {
+        userFullName.value = response.data.full_name;
+      }
+    } catch (error) {
+      console.error("Gagal mengambil nama pengguna:", error);
+    }
+  }
+});
+
+
+// --- Computed Properties ---
+const daysRemaining = computed(() => {
+  if (!expiryDate.value) return 0;
+  const now = new Date();
+  const expiry = new Date(expiryDate.value);
+  const diffTime = expiry - now;
+  if (diffTime < 0) return 0;
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+});
+
+const formattedExpiryDate = computed(() => {
+  if (!expiryDate.value) return 'Tidak Aktif';
+  return new Date(expiryDate.value).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+});
+
+const progressPercentage = computed(() => {
+  if (daysRemaining.value <= 0) return 0;
+  return Math.min(100, Math.max(0, (daysRemaining.value / 30) * 100));
+});
+
+const progressStyle = computed(() => {
+  const radius = 52;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (progressPercentage.value / 100) * circumference;
+  return {
+    strokeDasharray: circumference,
+    strokeDashoffset: offset
+  };
+});
+
+// --- Logika Lainnya ---
 const idata = [
-  { title: "Netflix", image: "/images/netflix.png" },
-  { title: "Spotify", image: "/images/spotify.png" },
-  { title: "VIU", image: "/images/viu_full.png" },
-  { title: "ChatGPT", image: "/images/chatgpt.png" },
-  { title: "WeTV", image: "/images/wetv.png" },
+  { title: "Netflix", image: "/images/netflix.png" },
+  { title: "Spotify", image: "/images/spotify.png" },
+  { title: "VIU", image: "/images/viu_full.png" },
+  { title: "ChatGPT", image: "/images/chatgpt.png" },
+  { title: "WeTV", image: "/images/wetv.png" },
 ];
-
 const isModalOpen = ref(false);
 const selectedAccount = ref(null);
-
 const openAccountModal = (productTitle) => {
-  const accountInfo = accountsData[productTitle];
-  if (accountInfo) {
-    selectedAccount.value = accountInfo;
-    isModalOpen.value = true;
-  } else {
-    console.warn(`Data akun untuk "${productTitle}" tidak ditemukan.`);
-  }
+  const accountInfo = accountsData[productTitle];
+  if (accountInfo) {
+    selectedAccount.value = accountInfo;
+    isModalOpen.value = true;
+  } else {
+    console.warn(`Data akun untuk "${productTitle}" tidak ditemukan.`);
+  }
 };
-
 const closeAccountModal = () => {
-  isModalOpen.value = false;
+  isModalOpen.value = false;
 };
 </script>
 
 <template>
-  <section
-    style="background: linear-gradient(180deg, #0080ff 0%, #fff 61.07%)"
-    class="flex flex-col items-center justify-center p-4 py-8"
-  >
-    <div class="rounded-[24px] bg-white w-full lg:w-[500px] shadow-[0_4px_15px_0_rgba(0,0,0,0.25)] p-4">
-      <div class="text-center">
-        <div class="flex justify-center items-center gap-3">
-          <h1 class="text-[#374151] font-[Outfit] text-[20px] lg:text-[24px] font-medium">
-            Selamat datang
-          </h1>
-          <img src="~/assets/images/love.png" alt="" />
-        </div>
-        <h1 class="text-[#374151] font-[Outfit] text-[26px] lg:text-[32px] font-semibold">
-          Kadek Gandi Taruna Wijaya
-        </h1>
-        <div class="my-4">
-          <img class="mx-auto w-32 h-32 lg:w-52 lg:h-52" src="~/assets/images/icon-member.png" alt="" />
-        </div>
-        <h2 class="text-[#374151] font-[Outfit] text-[22px] lg:text-[24px] font-semibold mb-2">
-          30 September 2025
-        </h2>
-        <div class="flex justify-center items-center gap-2 mb-3">
-          <img class="w-5 h-5" src="~/assets/images/calender.png" alt="" />
-          <h3>Masa Aktif</h3>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section class="pt-[10px]">
-    <div class="container mx-auto px-5 lg:px-16">
-      <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-        Produk Digital
-      </h2>
-      <div class="divide-y divide-gray-200">
-        <div v-for="(item, index) in idata" :key="index" class="flex justify-between items-center py-3">
-          <img :src="item.image" :alt="item.title" class="w-24 h-24 object-contain" />
-          <button @click="openAccountModal(item.title)" class="text-[#0080FF] font-semibold hover:underline">
-            Lihat akun
-          </button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <section>
-    <div class="container mx-auto px-6 lg:px-16 lg:py-8">
-      <div class="flex justify-between items-center mb-4">
-        <h1 class="text-xl md:text-4xl font-semibold text-gray-900">
-          Histori Pembelian
-        </h1>
-        <p class="text-[#0080FF] font-semibold">Histori Tagihan</p>
-      </div>
-      <div class="w-full lg:max-w-[500px] mx-auto lg:p-4 mb-3 lg:mb-0">
-        <div
-          class="bg-gradient-to-r from-[#E3F0FF] to-[#DFF5FF] rounded-xl shadow-md p-4"
-        >
-          <div class="flex justify-between items-start mb-3">
-            <div class="flex items-start gap-4">
-              <img
-                src="~/assets/images/logo-konek-biru.png"
-                alt="Konek Market"
-                class="w-16 h-auto"
-              />
-              <div>
-                <p class="text-sm lg:text-lg font-medium mb-2">
-                  Konek Entertainment
-                </p>
-                <div class="text-sm text-gray-800 space-y-1">
-                  <p>
-                    ID Pesanan:
-                    <span class="font-medium">KNX-20250828-ABC123</span>
-                  </p>
-                  <p>
-                    Tanggal: <span class="font-medium">27 September 2025</span>
-                  </p>
-                  <p>
-                    Metode Bayar:
-                    <span class="font-medium">QRIS (via GoPay)</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-            <button
-              class="bg-gradient-to-r from-[#0080FF] to-[#4DC9E6] text-white text-sm px-3 py-1 rounded-md font-medium"
-            >
-              Lihat Detail
-            </button>
-          </div>
-          <div class="flex justify-between items-center mt-4">
-            <p class="text-xl font-bold">Rp.99.000</p>
-            <p class="text-green-600 font-bold">STATUS BERHASIL</p>
-          </div>
-        </div>
-      </div>
-            <div class="w-full lg:max-w-[500px] mx-auto lg:p-4 mb-3 lg:mb-0">
-        <div
-          class="bg-gradient-to-r from-[#E3F0FF] to-[#DFF5FF] rounded-xl shadow-md p-4"
-        >
-          <div class="flex justify-between items-start mb-3">
-            <div class="flex items-start gap-4">
-              <img
-                src="~/assets/images/logo-konek-biru.png"
-                alt="Konek Market"
-                class="w-16 h-auto"
-              />
-              <div>
-                <p class="text-sm lg:text-lg font-medium mb-2">
-                  Konek Entertainment
-                </p>
-                <div class="text-sm text-gray-800 space-y-1">
-                  <p>
-                    ID Pesanan:
-                    <span class="font-medium">KNX-20250828-ABC123</span>
-                  </p>
-                  <p>
-                    Tanggal: <span class="font-medium">27 September 2025</span>
-                  </p>
-                  <p>
-                    Metode Bayar:
-                    <span class="font-medium">QRIS (via GoPay)</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-            <button
-              class="bg-gradient-to-r from-[#0080FF] to-[#4DC9E6] text-white text-sm px-3 py-1 rounded-md font-medium"
-            >
-              Lihat Detail
-            </button>
-          </div>
-          <div class="flex justify-between items-center mt-4">
-            <p class="text-xl font-bold">Rp.99.000</p>
-            <p class="text-green-600 font-bold">STATUS BERHASIL</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
+  <div style="background: linear-gradient(180deg, #0080ff 0%, #fff 25%)">
+    <div class="container mx-auto px-4 lg:px-8 py-8">
+      <div class="lg:flex lg:gap-8 xl:gap-12">
   
-  <section>
-    <div class="container mx-auto px-6 lg:py-8">
-      <div class="max-w-md mx-auto bg-white rounded-lg">
-        <h1 class="text-xl md:text-3xl font-bold text-gray-900 mb-3">
-          Hubungi Kami
-        </h1>
-        <h2 class="text-md md:text-xl font-medium text-gray-900 mb-2">
-          Jam Operasional
-        </h2>
-        <div class="flex justify-between items-center mb-2">
-          <h3 class="">Senin - Jumat :</h3>
-          <p class="font-semibold">09.00 - 17.00 WITA</p>
-        </div>
-        <div class="flex justify-between items-center mb-2">
-          <h3>Sabtu :</h3>
-          <p class="font-semibold">09.00 - 17.00 WITA</p>
-        </div>
-        <div class="flex justify-between items-center">
-          <h3>Minggu & Tanggal Merah :</h3>
-          <p class="text-red-500 font-semibold">Libur</p>
-        </div>
-      </div>
-      <div class="w-full max-w-md mx-auto my-4">
-        <div
-          class="flex items-center justify-between border rounded-xl px-4 py-3 shadow-sm bg-white"
-        >
-          <div class="flex items-center space-x-3">
-            <img src="~/assets/images/wa.png" alt="WhatsApp" class="w-6 h-6" />
-            <span class="text-[#111827] font-semibold">Admin Konek Plus</span>
+        <aside class="lg:w-1/3 xl:w-1/4 mb-8 lg:mb-0">
+          <div class="rounded-2xl bg-white w-full max-w-sm mx-auto shadow-xl p-6 text-center sticky top-8">
+            <p class="text-gray-600">Selamat Datang 👋</p>
+            <h1 class="text-2xl font-bold text-gray-900 truncate">{{ userFullName }}</h1>
+            
+            <div class="relative w-48 h-48 mx-auto my-4">
+              <svg class="w-full h-full" viewBox="0 0 120 120">
+                <circle class="text-gray-200" stroke-width="10" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60" />
+                <circle 
+                  class="text-cyan-500" 
+                  stroke-width="11" 
+                  :style="progressStyle"
+                  stroke-linecap="round" 
+                  stroke="currentColor" 
+                  fill="transparent" 
+                  r="52" 
+                  cx="60" 
+                  cy="60"
+                  transform="rotate(-90 60 60)"
+                />
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="text-5xl font-extrabold text-gray-800">{{ daysRemaining }}</span>
+                <span class="text-sm font-semibold text-gray-500">Hari Aktif</span>
+              </div>
+            </div>
+  
+            <h2 class="text-lg font-semibold text-gray-800">{{ formattedExpiryDate }}</h2>
+            <div class="flex justify-center items-center gap-2 text-sm text-gray-600 mt-1">
+              <img class="w-4 h-4" src="~/assets/images/calender.png" alt="Kalender" />
+              <span>Masa Aktif</span>
+            </div>
           </div>
-
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke-width="2"
-            stroke="currentColor"
-            class="w-5 h-5 text-gray-500"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
-        </div>
+        </aside>
+  
+        <main class="lg:w-2/3 xl:w-3/4">
+          <section class="mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 lg:text-gray-50 mb-4">
+              Produk Digital
+            </h2>
+            <div class="divide-y divide-gray-200 bg-white p-4 rounded-xl shadow-sm">
+              <div v-for="(item, index) in idata" :key="index" class="flex justify-between items-center py-3">
+                <img :src="item.image" :alt="item.title" class="w-24 h-24 object-contain" />
+                <button @click="openAccountModal(item.title)" class="text-[#0080FF] font-semibold hover:underline">
+                  Lihat akun
+                </button>
+              </div>
+            </div>
+          </section>
+  
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            
+            <section>
+              <div class="flex justify-between items-center mb-4">
+                <h1 class="text-2xl md:text-3xl font-semibold text-gray-900">
+                  Histori Pembelian
+                </h1>
+                <p class="text-[#0080FF] font-semibold cursor-pointer">Lihat Semua</p>
+              </div>
+              <div class="space-y-4">
+                <div class="bg-gradient-to-r from-[#E3F0FF] to-[#DFF5FF] rounded-xl shadow-md p-4">
+                  <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-start gap-4">
+                      <img src="~/assets/images/logo-konek-biru.png" alt="Konek Market" class="w-16 h-auto" />
+                      <div>
+                        <p class="text-base font-medium mb-2">Konek Entertainment</p>
+                        <div class="text-xs text-gray-800 space-y-1">
+                          <p>ID: <span class="font-medium">KNX-20250828-ABC123</span></p>
+                          <p>Tanggal: <span class="font-medium">27 Sep 2025</span></p>
+                        </div>
+                      </div>
+                    </div>
+                    <button class="bg-gradient-to-r from-[#0080FF] to-[#4DC9E6] text-white text-xs px-3 py-1 rounded-md font-medium">
+                      Detail
+                    </button>
+                  </div>
+                  <div class="flex justify-between items-center mt-4">
+                    <p class="text-lg font-bold">Rp.99.000</p>
+                    <p class="text-green-600 font-bold text-sm">BERHASIL</p>
+                  </div>
+                </div>
+                <div class="bg-gradient-to-r from-[#E3F0FF] to-[#DFF5FF] rounded-xl shadow-md p-4">
+                  <div class="flex justify-between items-start mb-3">
+                     <div class="flex items-start gap-4">
+                      <img src="~/assets/images/logo-konek-biru.png" alt="Konek Market" class="w-16 h-auto" />
+                      <div>
+                        <p class="text-base font-medium mb-2">Konek Entertainment</p>
+                        <div class="text-xs text-gray-800 space-y-1">
+                          <p>ID: <span class="font-medium">KNX-20250828-ABC123</span></p>
+                          <p>Tanggal: <span class="font-medium">27 Agu 2025</span></p>
+                        </div>
+                      </div>
+                    </div>
+                     <button class="bg-gradient-to-r from-[#0080FF] to-[#4DC9E6] text-white text-xs px-3 py-1 rounded-md font-medium">
+                      Detail
+                    </button>
+                  </div>
+                   <div class="flex justify-between items-center mt-4">
+                    <p class="text-lg font-bold">Rp.99.000</p>
+                    <p class="text-green-600 font-bold text-sm">BERHASIL</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+  
+            <section>
+               <div class="bg-white rounded-xl shadow-sm p-6 h-full">
+                <h1 class="text-2xl md:text-3xl font-semibold text-gray-900 mb-4">
+                  Hubungi Kami
+                </h1>
+                <h2 class="text-base font-medium text-gray-900 mb-2">
+                  Jam Operasional
+                </h2>
+                <div class="space-y-2 text-sm mb-4">
+                  <div class="flex justify-between items-center">
+                    <h3 class="text-gray-600">Senin - Jumat :</h3>
+                    <p class="font-semibold text-gray-800">09.00 - 17.00 WITA</p>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <h3 class="text-gray-600">Sabtu :</h3>
+                    <p class="font-semibold text-gray-800">09.00 - 17.00 WITA</p>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <h3 class="text-gray-600">Minggu & Tgl Merah :</h3>
+                    <p class="text-red-500 font-semibold">Libur</p>
+                  </div>
+                </div>
+                <a href="#" class="flex items-center justify-between border rounded-xl px-4 py-3 shadow-sm bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div class="flex items-center space-x-3">
+                    <img src="~/assets/images/wa.png" alt="WhatsApp" class="w-6 h-6" />
+                    <span class="text-[#111827] font-semibold">Admin Konek Plus</span>
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-500">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </a>
+              </div>
+            </section>
+          </div>
+        </main>
       </div>
     </div>
-  </section>
-
+  </div>
   <Teleport to="body">
     <Transition
       enter-active-class="transition-opacity duration-300 ease-out"
@@ -228,9 +243,7 @@ const closeAccountModal = () => {
       leave-to-class="opacity-0"
     >
       <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-end justify-center">
-        
         <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeAccountModal"></div>
-
         <Transition
           appear
           enter-active-class="transition-transform duration-300 ease-out"
@@ -246,7 +259,6 @@ const closeAccountModal = () => {
             @close="closeAccountModal"
           />
         </Transition>
-        
       </div>
     </Transition>
   </Teleport>
@@ -254,12 +266,4 @@ const closeAccountModal = () => {
 
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap");
-#login {
-  background: linear-gradient(
-    107deg,
-    #3ef7f7 2.61%,
-    #0080ff 51.9%,
-    #30c1ff 101.2%
-  );
-}
 </style>
