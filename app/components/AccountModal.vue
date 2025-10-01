@@ -37,7 +37,7 @@ const copyToClipboard = async (text, field) => {
   >
     <header class="relative flex-shrink-0 p-4 border-b border-gray-200 flex justify-center items-center">
       <h2 class="text-xl font-bold text-gray-800 text-center">
-        Akun & Tutorial aktivasi
+        {{ account.owned ? 'Akun & Tutorial Aktivasi' : 'Produk Belum Aktif' }}
       </h2>
       <button
         @click="emit('close')"
@@ -51,18 +51,33 @@ const copyToClipboard = async (text, field) => {
     </header>
 
     <div class="overflow-y-auto p-6">
-      <div class="mx-auto space-y-8">
+      
+      <div v-if="!account.owned" class="text-center py-8">
+        <h3 class="text-xl font-bold mb-4">Anda Belum Berlangganan</h3>
+        <p class="text-gray-600 mb-6">
+          Aktifkan paket Konek Plus Membership untuk mendapatkan akses ke <span class="font-semibold">{{ account.product }}</span> dan produk lainnya.
+        </p>
+        <NuxtLink 
+          to="/payment/checkout" 
+          @click="emit('close')"
+          class="inline-block bg-blue-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          Langganan Sekarang
+        </NuxtLink>
+      </div>
+
+      <div v-else class="mx-auto space-y-8">
         <div class="space-y-3">
           <h3 class="text-lg font-semibold text-gray-900">Info Akun</h3>
           <div class="border rounded-lg p-4 space-y-3 text-sm md:text-base">
             <div class="flex justify-between items-center gap-4">
               <span class="text-gray-600">Product</span>
-              <span class="font-medium text-gray-900 text-right">{{ account.product }}</span>
+              <span class="font-medium text-gray-900 text-right">{{ account.product || '-' }}</span>
             </div>
             <div class="flex justify-between items-center gap-4">
               <span class="text-gray-600">Email</span>
               <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-900 break-all">{{ account.email }}</span>
+                <span class="font-medium text-gray-900 break-all">{{ account.email || '-' }}</span>
                 <button @click="copyToClipboard(account.email, 'email')" class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50">
                   {{ copyStatus.email || 'Salin' }}
                 </button>
@@ -71,7 +86,7 @@ const copyToClipboard = async (text, field) => {
             <div class="flex justify-between items-center gap-4">
               <span class="text-gray-600">Password</span>
               <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-900">{{ account.password }}</span>
+                <span class="font-medium text-gray-900">{{ account.password || '-' }}</span>
                 <button @click="copyToClipboard(account.password, 'password')" class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50">
                   {{ copyStatus.password || 'Salin' }}
                 </button>
@@ -102,7 +117,6 @@ const copyToClipboard = async (text, field) => {
           </div>
           <div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">Ketentuan Pemakaian</h3>
-            <h4 class="font-medium text-gray-800">Spesifikasi Produk</h4>
             <ol class="list-decimal list-inside text-gray-700 space-y-1.5 pl-1 mt-1">
               <li v-for="(term, i) in account.terms" :key="`term-${i}`">{{ term }}</li>
             </ol>

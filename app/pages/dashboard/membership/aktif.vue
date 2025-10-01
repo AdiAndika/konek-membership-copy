@@ -1,90 +1,142 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { accountsData } from '~/data/accounts.js';
+import { accountImages, accountsData } from '~/data/accounts.js'; 
 import AccountModal from '~/components/AccountModal.vue';
 import { api } from '~/services/api';
 import { useAuth } from '~/composables/useState';
 
-
-// --- State ---
-const userFullName = ref('Pengguna'); 
-const futureDate = new Date();
-futureDate.setDate(futureDate.getDate() + 21);
-const expiryDate = ref(futureDate);
-
 const auth = useAuth();
+const userFullName = ref('Pengguna'); 
+const expiryDate = ref(null);
+const membershipAccounts = ref([]); // Data dari API (produk yang dimiliki)
+const isLoading = ref(true);
 
-// --- Lifecycle Hook untuk Mengambil Data Nama dari API ---
 onMounted(async () => {
-  if (auth.value.user && auth.value.user.id) {
-    try {
-      const response = await api.getUserDetail(auth.value.user.id);
-      if (response.data && response.data.full_name) {
-        userFullName.value = response.data.full_name;
-      }
-    } catch (error) {
-      console.error("Gagal mengambil nama pengguna:", error);
-    }
-  }
+  if (auth.value.user && auth.value.user.id) {
+    try {
+      isLoading.value = true;
+      const [userResponse, membershipResponse] = await Promise.all([
+        api.getUserDetail(auth.value.user.id),
+        api.getMembershipDetail(auth.value.user.id)
+      ]);
+
+      if (userResponse.data?.full_name) {
+        userFullName.value = userResponse.data.full_name;
+      }
+
+      if (membershipResponse.data) {
+        expiryDate.value = new Date(membershipResponse.data.end_at);
+        membershipAccounts.value = membershipResponse.data.pelanggan_membership_akun || [];
+      }
+    } catch (error) {
+      console.error("Gagal mengambil data dashboard:", error);
+    } finally {
+      isLoading.value = false;
+    }
+  } else {
+    isLoading.value = false;
+  }
 });
 
 
-// --- Computed Properties ---
+// --- PERUBAHAN LOGIKA UTAMA DI SINI ---
+const idata = computed(() => {
+  // 1. Ambil daftar semua produk yang mungkin ada dari data/accounts.js
+  const allPossibleProducts = Object.keys(accountsData);
+
+  // 2. Buat daftar baru dengan menandai status kepemilikan
+  return allPossibleProducts.map(productName => {
+    // Cari apakah produk ini ada di dalam data API (yang dimiliki pengguna)
+    const ownedAccount = membershipAccounts.value.find(
+      acc => acc.account_product?.paket_addon?.name === productName
+    );
+
+    if (ownedAccount) {
+      // KASUS 1: Pengguna MEMILIKI produk ini
+      const staticData = accountsData[productName];
+      return {
+        title: productName,
+        image: accountImages[productName] || '/images/default.png',
+        isOwned: true,
+        apiData: {
+          owned: true, // Tandai sebagai dimiliki
+          product: productName,
+          email: ownedAccount.account_product?.email,
+          password: ownedAccount.account_product?.password,
+          profileName: ownedAccount.profile_name,
+          pin: ownedAccount.pin,
+          tutorial: staticData.tutorial,
+          terms: staticData.terms,
+          consequences: staticData.consequences,
+        }
+      };
+    } else {
+      // KASUS 2: Pengguna TIDAK MEMILIKI produk ini
+      return {
+        title: productName,
+        image: accountImages[productName] || '/images/default.png',
+        isOwned: false,
+        apiData: {
+          owned: false, // Tandai sebagai TIDAK dimiliki
+          product: productName,
+        }
+      };
+    }
+  });
+});
+
+
+// --- Sisa script tidak ada perubahan ---
 const daysRemaining = computed(() => {
-  if (!expiryDate.value) return 0;
-  const now = new Date();
-  const expiry = new Date(expiryDate.value);
-  const diffTime = expiry - now;
-  if (diffTime < 0) return 0;
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  if (!expiryDate.value) return 0;
+  const now = new Date();
+  const expiry = new Date(expiryDate.value);
+  const diffTime = expiry - now;
+  if (diffTime < 0) return 0;
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 });
 
 const formattedExpiryDate = computed(() => {
-  if (!expiryDate.value) return 'Tidak Aktif';
-  return new Date(expiryDate.value).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
+  if (!expiryDate.value) return 'Tidak Aktif';
+  return new Date(expiryDate.value).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 });
 
 const progressPercentage = computed(() => {
-  if (daysRemaining.value <= 0) return 0;
-  return Math.min(100, Math.max(0, (daysRemaining.value / 30) * 100));
+  if (daysRemaining.value <= 0) return 0;
+  return Math.min(100, Math.max(0, (daysRemaining.value / 30) * 100));
 });
 
 const progressStyle = computed(() => {
-  const radius = 52;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (progressPercentage.value / 100) * circumference;
-  return {
-    strokeDasharray: circumference,
-    strokeDashoffset: offset
-  };
+  const radius = 52;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (progressPercentage.value / 100) * circumference;
+  return {
+    strokeDasharray: circumference,
+    strokeDashoffset: offset
+  };
 });
 
-// --- Logika akun ---
-const idata = [
-  { title: "Netflix", image: "/images/netflix.png" },
-  { title: "Spotify", image: "/images/spotify.png" },
-  { title: "VIU", image: "/images/viu_full.png" },
-  { title: "WeTV", image: "/images/wetv.png" },
-];
 const isModalOpen = ref(false);
 const selectedAccount = ref(null);
-const openAccountModal = (productTitle) => {
-  const accountInfo = accountsData[productTitle];
-  if (accountInfo) {
-    selectedAccount.value = accountInfo;
-    isModalOpen.value = true;
-  } else {
-    console.warn(`Data akun untuk "${productTitle}" tidak ditemukan.`);
-  }
+
+const openAccountModal = (item) => {
+  if (item && item.apiData) {
+    selectedAccount.value = item.apiData;
+    isModalOpen.value = true;
+  } else {
+    console.warn(`Data akun tidak lengkap.`);
+  }
 };
+
 const closeAccountModal = () => {
-  isModalOpen.value = false;
+  isModalOpen.value = false;
 };
 </script>
+
 
 <template>
   <div style="background: linear-gradient(180deg, #0080ff 0%, #fff 25%)">
@@ -95,7 +147,6 @@ const closeAccountModal = () => {
           <div class="rounded-2xl bg-white w-full max-w-sm mx-auto shadow-xl p-6 text-center sticky top-8">
             <p class="text-gray-600">Selamat Datang 👋</p>
             <h1 class="text-2xl font-bold text-gray-900 truncate">{{ userFullName }}</h1>
-            
             <div class="relative w-48 h-48 mx-auto my-4">
               <svg class="w-full h-full" viewBox="0 0 120 120">
                 <circle class="text-gray-200" stroke-width="10" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60" />
@@ -117,7 +168,6 @@ const closeAccountModal = () => {
                 <span class="text-sm font-semibold text-gray-500">Hari Aktif</span>
               </div>
             </div>
-  
             <h2 class="text-lg font-semibold text-gray-800">{{ formattedExpiryDate }}</h2>
             <div class="flex justify-center items-center gap-2 text-sm text-gray-600 mt-1">
               <img class="w-4 h-4" src="~/assets/images/calender.png" alt="Kalender" />
@@ -131,10 +181,11 @@ const closeAccountModal = () => {
             <h2 class="text-3xl md:text-4xl font-bold text-gray-900 lg:text-gray-50 mb-4">
               Produk Digital
             </h2>
-            <div class="divide-y divide-gray-200 bg-white p-4 rounded-xl shadow-sm">
+            <div v-if="isLoading" class="text-center text-white p-4">Memuat data produk...</div>
+            <div v-else class="divide-y divide-gray-200 bg-white p-4 rounded-xl shadow-sm">
               <div v-for="(item, index) in idata" :key="index" class="flex justify-between items-center py-3">
                 <img :src="item.image" :alt="item.title" class="w-24 h-24 object-contain" />
-                <button @click="openAccountModal(item.title)" class="text-[#0080FF] font-semibold hover:underline">
+                <button @click="openAccountModal(item)" class="text-[#0080FF] font-semibold hover:underline">
                   Lihat akun
                 </button>
               </div>
@@ -142,7 +193,6 @@ const closeAccountModal = () => {
           </section>
   
           <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            
             <section>
               <div class="flex justify-between items-center mb-4">
                 <h1 class="text-2xl md:text-3xl font-semibold text-gray-900">
@@ -172,30 +222,8 @@ const closeAccountModal = () => {
                     <p class="text-green-600 font-bold text-sm">BERHASIL</p>
                   </div>
                 </div>
-                <div class="bg-gradient-to-r from-[#E3F0FF] to-[#DFF5FF] rounded-xl shadow-md p-4">
-                  <div class="flex justify-between items-start mb-3">
-                     <div class="flex items-start gap-4">
-                      <img src="~/assets/images/logo-konek-biru.png" alt="Konek Market" class="w-16 h-auto" />
-                      <div>
-                        <p class="text-base font-medium mb-2">Konek Entertainment</p>
-                        <div class="text-xs text-gray-800 space-y-1">
-                          <p>ID: <span class="font-medium">KNX-20250828-ABC123</span></p>
-                          <p>Tanggal: <span class="font-medium">27 Agu 2025</span></p>
-                        </div>
-                      </div>
-                    </div>
-                     <button class="bg-gradient-to-r from-[#0080FF] to-[#4DC9E6] text-white text-xs px-3 py-1 rounded-md font-medium">
-                      Detail
-                    </button>
-                  </div>
-                   <div class="flex justify-between items-center mt-4">
-                    <p class="text-lg font-bold">Rp.99.000</p>
-                    <p class="text-green-600 font-bold text-sm">BERHASIL</p>
-                  </div>
-                </div>
               </div>
             </section>
-  
             <section>
                <div class="bg-white rounded-xl shadow-sm p-6 h-full">
                 <h1 class="text-2xl md:text-3xl font-semibold text-gray-900 mb-4">
@@ -223,7 +251,7 @@ const closeAccountModal = () => {
                     <img src="~/assets/images/wa.png" alt="WhatsApp" class="w-6 h-6" />
                     <span class="text-[#111827] font-semibold">Admin Konek Plus</span>
                   </div>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-500">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
                 </a>
