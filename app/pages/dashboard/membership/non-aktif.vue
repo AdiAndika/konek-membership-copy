@@ -1,23 +1,14 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { api } from '~/services/api';
+import { ref } from 'vue';
 import { useAuth } from '~/composables/useState';
 
 const auth = useAuth();
-const userFullName = ref('Pengguna');
 
-onMounted(async () => {
-  if (auth.value.user && auth.value.user.id) {
-    try {
-      const response = await api.getUserDetail(auth.value.user.id);
-      if (response.data && response.data.full_name) {
-        userFullName.value = response.data.full_name;
-      }
-    } catch (error) {
-      console.error("Gagal mengambil nama pengguna:", error);
-    }
-  }
-});
+// --- PERUBAHAN DI SINI ---
+// Langsung ambil nama dari state auth, dengan fallback 'Pengguna'
+const userFullName = ref(auth.value.user?.full_name || 'Pengguna');
+
+// onMounted tidak diperlukan lagi untuk mengambil nama, jadi bisa dihapus
 </script>
 
 <template>

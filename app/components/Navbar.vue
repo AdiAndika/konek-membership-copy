@@ -27,7 +27,7 @@ const logout = () => {
         <div>
           <nav class="hidden lg:flex items-center gap-8">
             <template v-if="isLoggedIn">
-              <router-link to="/dashboard/membership/aktif" class="font-semibold text-gray-700 hover:text-blue-500 transition">Beranda</router-link>
+              <router-link to="/dashboard/" class="font-semibold text-gray-700 hover:text-blue-500 transition">Beranda</router-link>
               <router-link to="/profile/edit" class="font-semibold text-gray-700 hover:text-blue-500 transition">Profile</router-link>
               <button @click="logout" class="font-semibold text-gray-700 hover:text-red-500 transition">Logout</button>
             </template>
@@ -61,7 +61,7 @@ const logout = () => {
       leave-to-class="transform opacity-0 -translate-y-2"
     >
       <div v-if="isOpen && isLoggedIn" class="lg:hidden flex flex-col bg-white shadow-lg absolute w-full left-0 divide-y divide-gray-200">
-        <router-link to="/dashboard/membership/aktif" @click="isOpen = false" class="font-semibold text-gray-700 hover:text-blue-500 transition px-4 py-3">Beranda</router-link>
+        <router-link to="/dashboard/" @click="isOpen = false" class="font-semibold text-gray-700 hover:text-blue-500 transition px-4 py-3">Beranda</router-link>
         <router-link to="/profile/edit" @click="isOpen = false" class="font-semibold text-gray-700 hover:text-blue-500 transition px-4 py-3">Profile</router-link>
         <button @click="logout" class="text-left font-semibold text-red-500 hover:text-red-600 transition px-4 py-3">Logout</button>
       </div>

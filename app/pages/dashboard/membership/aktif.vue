@@ -6,23 +6,23 @@ import { api } from '~/services/api';
 import { useAuth } from '~/composables/useState';
 
 const auth = useAuth();
-const userFullName = ref('Pengguna'); 
+
+// --- PERUBAHAN UTAMA DI SINI ---
+// Langsung ambil nama lengkap dari state cookie.
+// Jika tidak ada, baru gunakan 'Pengguna' sebagai fallback.
+const userFullName = ref(auth.value.user?.full_name || 'Pengguna'); 
+
 const expiryDate = ref(null);
-const membershipAccounts = ref([]); // Data dari API (produk yang dimiliki)
+const membershipAccounts = ref([]);
 const isLoading = ref(true);
 
 onMounted(async () => {
   if (auth.value.user && auth.value.user.id) {
     try {
       isLoading.value = true;
-      const [userResponse, membershipResponse] = await Promise.all([
-        api.getUserDetail(auth.value.user.id),
-        api.getMembershipDetail(auth.value.user.id)
-      ]);
-
-      if (userResponse.data?.full_name) {
-        userFullName.value = userResponse.data.full_name;
-      }
+      // Panggilan API untuk user detail tidak diperlukan lagi untuk nama,
+      // tapi kita tetap ambil data membership.
+      const membershipResponse = await api.getMembershipDetail(auth.value.user.id);
 
       if (membershipResponse.data) {
         expiryDate.value = new Date(membershipResponse.data.end_at);
@@ -38,32 +38,28 @@ onMounted(async () => {
   }
 });
 
+// --- Sisa dari script tidak perlu diubah ---
 
-// --- PERUBAHAN LOGIKA UTAMA DI SINI ---
 const idata = computed(() => {
-  // 1. Ambil daftar semua produk yang mungkin ada dari data/accounts.js
   const allPossibleProducts = Object.keys(accountsData);
 
-  // 2. Buat daftar baru dengan menandai status kepemilikan
   return allPossibleProducts.map(productName => {
-    // Cari apakah produk ini ada di dalam data API (yang dimiliki pengguna)
     const ownedAccount = membershipAccounts.value.find(
       acc => acc.account_product?.paket_addon?.name === productName
     );
 
     if (ownedAccount) {
-      // KASUS 1: Pengguna MEMILIKI produk ini
       const staticData = accountsData[productName];
       return {
         title: productName,
         image: accountImages[productName] || '/images/default.png',
         isOwned: true,
         apiData: {
-          owned: true, // Tandai sebagai dimiliki
+          owned: true,
           product: productName,
           email: ownedAccount.account_product?.email,
           password: ownedAccount.account_product?.password,
-          profileName: ownedAccount.profile_name,
+          profileName: ownedAccount.account_profile?.name, // Koreksi: Mengambil nama profil
           pin: ownedAccount.pin,
           tutorial: staticData.tutorial,
           terms: staticData.terms,
@@ -71,13 +67,12 @@ const idata = computed(() => {
         }
       };
     } else {
-      // KASUS 2: Pengguna TIDAK MEMILIKI produk ini
       return {
         title: productName,
         image: accountImages[productName] || '/images/default.png',
         isOwned: false,
         apiData: {
-          owned: false, // Tandai sebagai TIDAK dimiliki
+          owned: false,
           product: productName,
         }
       };
@@ -85,8 +80,6 @@ const idata = computed(() => {
   });
 });
 
-
-// --- Sisa script tidak ada perubahan ---
 const daysRemaining = computed(() => {
   if (!expiryDate.value) return 0;
   const now = new Date();
