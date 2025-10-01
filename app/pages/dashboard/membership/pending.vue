@@ -1,131 +1,55 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { accountsData } from '~/data/accounts.js';
-import AccountModal from '~/components/AccountModal.vue';
+import { ref, onMounted } from 'vue';
 import { api } from '~/services/api';
 import { useAuth } from '~/composables/useState';
 
-
 // --- State ---
-const userFullName = ref('Pengguna'); 
-const futureDate = new Date();
-futureDate.setDate(futureDate.getDate() + 21);
-const expiryDate = ref(futureDate);
-
+const userFullName = ref('Pengguna');
 const auth = useAuth();
 
 // --- Lifecycle Hook untuk Mengambil Data Nama dari API ---
 onMounted(async () => {
-  if (auth.value.user && auth.value.user.id) {
-    try {
-      const response = await api.getUserDetail(auth.value.user.id);
-      if (response.data && response.data.full_name) {
-        userFullName.value = response.data.full_name;
-      }
-    } catch (error) {
-      console.error("Gagal mengambil nama pengguna:", error);
-    }
-  }
+  if (auth.value.user && auth.value.user.id) {
+    try {
+      const response = await api.getUserDetail(auth.value.user.id);
+      if (response.data && response.data.full_name) {
+        userFullName.value = response.data.full_name;
+      }
+    } catch (error) {
+      console.error("Gagal mengambil nama pengguna:", error);
+    }
+  }
 });
 
-
-// --- Computed Properties ---
-const daysRemaining = computed(() => {
-  if (!expiryDate.value) return 0;
-  const now = new Date();
-  const expiry = new Date(expiryDate.value);
-  const diffTime = expiry - now;
-  if (diffTime < 0) return 0;
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-});
-
-const formattedExpiryDate = computed(() => {
-  if (!expiryDate.value) return 'Tidak Aktif';
-  return new Date(expiryDate.value).toLocaleDateString('id-ID', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-});
-
-const progressPercentage = computed(() => {
-  if (daysRemaining.value <= 0) return 0;
-  return Math.min(100, Math.max(0, (daysRemaining.value / 30) * 100));
-});
-
-const progressStyle = computed(() => {
-  const radius = 52;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (progressPercentage.value / 100) * circumference;
-  return {
-    strokeDasharray: circumference,
-    strokeDashoffset: offset
-  };
-});
-
-// --- Logika akun ---
+// --- Data untuk list produk ---
 const idata = [
-  { title: "Netflix", image: "/images/netflix.png" },
-  { title: "Spotify", image: "/images/spotify.png" },
-  { title: "VIU", image: "/images/viu_full.png" },
-  { title: "WeTV", image: "/images/wetv.png" },
+  { title: "Netflix", image: "/images/netflix.png" },
+  { title: "Spotify", image: "/images/spotify.png" },
+  { title: "VIU", image: "/images/viu_full.png" },
+  { title: "WeTV", image: "/images/wetv.png" },
 ];
-const isModalOpen = ref(false);
-const selectedAccount = ref(null);
-const openAccountModal = (productTitle) => {
-  const accountInfo = accountsData[productTitle];
-  if (accountInfo) {
-    selectedAccount.value = accountInfo;
-    isModalOpen.value = true;
-  } else {
-    console.warn(`Data akun untuk "${productTitle}" tidak ditemukan.`);
-  }
-};
-const closeAccountModal = () => {
-  isModalOpen.value = false;
-};
 </script>
 
 <template>
   <div style="background: linear-gradient(180deg, #0080ff 0%, #fff 25%)">
     <div class="container mx-auto px-4 lg:px-8 py-8">
       <div class="lg:flex lg:gap-8 xl:gap-12">
-  
+
         <aside class="lg:w-1/3 xl:w-1/4 mb-8 lg:mb-0">
           <div class="rounded-2xl bg-white w-full max-w-sm mx-auto shadow-xl p-6 text-center sticky top-8">
             <p class="text-gray-600">Selamat Datang 👋</p>
             <h1 class="text-2xl font-bold text-gray-900 truncate">{{ userFullName }}</h1>
-            
-            <div class="relative w-48 h-48 mx-auto my-4">
-              <svg class="w-full h-full" viewBox="0 0 120 120">
-                <circle class="text-gray-200" stroke-width="10" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60" />
-                <circle 
-                  class="text-cyan-500" 
-                  stroke-width="11" 
-                  :style="progressStyle"
-                  stroke-linecap="round" 
-                  stroke="currentColor" 
-                  fill="transparent" 
-                  r="52" 
-                  cx="60" 
-                  cy="60"
-                  transform="rotate(-90 60 60)"
-                />
-              </svg>
-              <div class="absolute inset-0 flex flex-col items-center justify-center">
-                <span class="text-5xl font-extrabold text-gray-800">{{ daysRemaining }}</span>
-                <span class="text-sm font-semibold text-gray-500">Hari Aktif</span>
-              </div>
-            </div>
-  
-            <h2 class="text-lg font-semibold text-gray-800">{{ formattedExpiryDate }}</h2>
-            <div class="flex justify-center items-center gap-2 text-sm text-gray-600 mt-1">
-              <img class="w-4 h-4" src="~/assets/images/calender.png" alt="Kalender" />
-              <span>Masa Aktif</span>
+
+            <div class="my-6">
+              <img
+                class="mx-auto w-70 h-70 lg:w-40 lg:h-40"
+                src="~/assets/images/pending-status.svg"
+                alt="Icon Pending"
+              />
             </div>
           </div>
         </aside>
-  
+
         <main class="lg:w-2/3 xl:w-3/4">
           <section class="mb-12">
             <h2 class="text-3xl md:text-4xl font-bold text-gray-900 lg:text-gray-50 mb-4">
@@ -134,15 +58,15 @@ const closeAccountModal = () => {
             <div class="divide-y divide-gray-200 bg-white p-4 rounded-xl shadow-sm">
               <div v-for="(item, index) in idata" :key="index" class="flex justify-between items-center py-3">
                 <img :src="item.image" :alt="item.title" class="w-24 h-24 object-contain" />
-                <button @click="openAccountModal(item.title)" class="text-[#0080FF] font-semibold hover:underline">
-                  Lihat akun
-                </button>
+                <p class="text-yellow-500 font-semibold">
+                  Menunggu...
+                </p>
               </div>
             </div>
           </section>
-  
+
           <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            
+
             <section>
               <div class="flex justify-between items-center mb-4">
                 <h1 class="text-2xl md:text-3xl font-semibold text-gray-900">
@@ -195,7 +119,7 @@ const closeAccountModal = () => {
                 </div>
               </div>
             </section>
-  
+
             <section>
                <div class="bg-white rounded-xl shadow-sm p-6 h-full">
                 <h1 class="text-2xl md:text-3xl font-semibold text-gray-900 mb-4">
@@ -223,7 +147,7 @@ const closeAccountModal = () => {
                     <img src="~/assets/images/wa.png" alt="WhatsApp" class="w-6 h-6" />
                     <span class="text-[#111827] font-semibold">Admin Konek Plus</span>
                   </div>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-500">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
                 </a>
@@ -234,33 +158,6 @@ const closeAccountModal = () => {
       </div>
     </div>
   </div>
-  <Teleport to="body">
-    <Transition
-      enter-active-class="transition-opacity duration-300 ease-out"
-      leave-active-class="transition-opacity duration-200 ease-in"
-      enter-from-class="opacity-0"
-      leave-to-class="opacity-0"
-    >
-      <div v-if="isModalOpen" class="fixed inset-0 z-50 flex items-end justify-center">
-        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeAccountModal"></div>
-        <Transition
-          appear
-          enter-active-class="transition-transform duration-300 ease-out"
-          leave-active-class="transition-transform duration-200 ease-in"
-          enter-from-class="translate-y-full"
-          enter-to-class="translate-y-0"
-          leave-from-class="translate-y-0"
-          leave-to-class="translate-y-full"
-        >
-          <AccountModal
-            v-if="selectedAccount"
-            :account="selectedAccount"
-            @close="closeAccountModal"
-          />
-        </Transition>
-      </div>
-    </Transition>
-  </Teleport>
 </template>
 
 <style>

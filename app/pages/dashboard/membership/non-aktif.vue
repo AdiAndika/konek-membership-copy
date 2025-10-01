@@ -1,5 +1,26 @@
+<script setup>
+import { ref, onMounted } from 'vue';
+import { api } from '~/services/api';
+import { useAuth } from '~/composables/useState';
+
+const auth = useAuth();
+const userFullName = ref('Pengguna');
+
+onMounted(async () => {
+  if (auth.value.user && auth.value.user.id) {
+    try {
+      const response = await api.getUserDetail(auth.value.user.id);
+      if (response.data && response.data.full_name) {
+        userFullName.value = response.data.full_name;
+      }
+    } catch (error) {
+      console.error("Gagal mengambil nama pengguna:", error);
+    }
+  }
+});
+</script>
+
 <template>
-  <!-- content dashboard -->
   <section
     style="background: linear-gradient(180deg, #0080ff 0%, #fff 61.07%)"
     class="flex flex-col items-center justify-center p-4 py-8"
@@ -19,7 +40,7 @@
         <h1
           class="text-[#374151] font-[Outfit] text-[26px] lg:text-[32px] font-semibold"
         >
-          Kadek Gandi Taruna Wijaya
+          {{ userFullName }}
         </h1>
         <div class="my-4">
           <img
@@ -38,12 +59,13 @@
         >
           Ayo langganan sekarang, nikmati berbagai hiburan dan edukasi menarik
         </p>
-        <button
+        <NuxtLink
+          to="/payment/checkout"
           class="flex items-center justify-center gap-2 w-full py-3 rounded-[12px] bg-[#1D9BF0] text-white font-[Outfit] text-[16px] font-semibold"
         >
           <img src="~/assets/images/cart.png" alt="cart" class="w-5 h-5" />
           Langganan Sekarang
-        </button>
+        </NuxtLink>
       </div>
     </div>
     <div class="my-4 flex justify-center">
@@ -55,7 +77,6 @@
     </div>
   </section>
 
-  <!-- product -->
   <section
     class="pt-[10px] pb-[60px] bg-gradient-to-b from-white via-blue-50 to-blue-500"
   >
@@ -64,16 +85,17 @@
         Langganan Sekarang! Cuma Rp.99.000 per bulan
       </h2>
       <div class="mt-10 max-w-sm mx-auto">
-        <a href="#" aria-label="Langganan Sekarang">
+        <NuxtLink to="/payment/checkout" aria-label="Langganan Sekarang">
           <img
             src="~/assets/images/card-promo.svg"
             alt="Kartu Promo Konek Entertainment"
             class="w-full h-auto"
           />
-        </a>
+        </NuxtLink>
 
         <div class="mt-8">
-          <button
+          <NuxtLink
+            to="/payment/checkout"
             class="w-full bg-white text-[#0694FF] font-bold py-3 px-6 rounded-full flex items-center justify-center space-x-3 shadow-lg hover:scale-105"
           >
             <img
@@ -82,14 +104,13 @@
               class="w-8 h-8"
             />
             <span class="text-[22px]">Langganan Sekarang</span>
-          </button>
+          </NuxtLink>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- contact -->\
-  <section>
+  <section class="mt-16">
     <div class="container mx-auto px-6 lg:py-8">
       <div class="max-w-md mx-auto bg-white rounded-lg">
         <h1 class="text-xl md:text-3xl font-bold text-gray-900 mb-3">
@@ -115,13 +136,10 @@
         <div
           class="flex items-center justify-between border rounded-xl px-4 py-3 shadow-sm bg-white"
         >
-          <!-- Kiri: Icon + Text -->
           <div class="flex items-center space-x-3">
             <img src="~/assets/images/wa.png" alt="WhatsApp" class="w-6 h-6" />
             <span class="text-[#111827] font-semibold">Admin Konek Plus</span>
           </div>
-
-          <!-- Kanan: Arrow -->
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -144,12 +162,4 @@
 
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap");
-#login {
-  background: linear-gradient(
-    107deg,
-    #3ef7f7 2.61%,
-    #0080ff 51.9%,
-    #30c1ff 101.2%
-  );
-}
 </style>
