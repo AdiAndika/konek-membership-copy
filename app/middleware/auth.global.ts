@@ -23,7 +23,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
     if (guestRoutes.includes(to.path)) {
       // Alihkan paksa ke halaman dashboard
       console.log('Middleware: Sudah login, mengalihkan ke dashboard');
-      return navigateTo('/dashboard/membership/non-aktif');
+      return navigateTo('/dashboard/');
     }
   }
 });
