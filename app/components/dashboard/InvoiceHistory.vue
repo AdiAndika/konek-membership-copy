@@ -1,4 +1,6 @@
 <script setup>
+import { useCheckoutState } from '~/composables/useCheckout';
+
 const props = defineProps({
   invoices: {
     type: Array,
@@ -6,6 +8,24 @@ const props = defineProps({
   },
   isLoading: Boolean,
 });
+
+const checkoutState = useCheckoutState();
+const router = useRouter();
+
+const handleDetailClick = (invoice) => {
+  const status = invoice.status ? invoice.status.toLowerCase() : '';
+
+  if (status === 'pending' || status === 'menunggu') {
+    checkoutState.value = {
+      totalAmount: invoice.amount,
+      paymentUrl: invoice.payment_url,
+      expiryDate: invoice.due_date,
+    };
+    router.push('/payment/checkout');
+  } else {
+    router.push(`/invoice/${invoice.invoice_id}`);
+  }
+};
 
 const getStatusClass = (status) => {
   const lowerCaseStatus = status ? status.toLowerCase() : '';
@@ -34,7 +54,6 @@ const formatCurrency = (value) => {
       <h1 class="text-2xl md:text-3xl font-semibold text-gray-900">
         Histori Pembelian
       </h1>
-      <p class="text-[#0080FF] font-semibold cursor-pointer">Lihat Semua</p>
     </div>
 
     <div v-if="isLoading" class="text-center p-4">Memuat histori...</div>
@@ -45,22 +64,23 @@ const formatCurrency = (value) => {
       <div 
         v-for="invoice in invoices" 
         :key="invoice.invoice_id"
-        class="bg-gradient-to-r from-[#E3F0FF] to-[#DFF5FF] rounded-xl shadow-md p-4"
+        class="bg-gradient-to-r from-[#E3F0FF] to-[#DFF5FF] rounded-xl shadow-md p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 transition-all duration-200"
+        @click="handleDetailClick(invoice)"
       >
         <div class="flex justify-between items-start mb-3">
           <div class="flex items-start gap-4">
             <img src="~/assets/images/logo-konek-biru.png" alt="Konek Market" class="w-16 h-auto" />
             <div>
-              <p class="text-base font-medium mb-2">{{ invoice.pelanggan_membership?.product_membership?.name || 'Produk' }}</p>
+              <p class="text-base font-medium mb-2">{{ invoice.order_paket_membership?.paket_membership?.nama_paket || 'Paket Membership' }}</p>
               <div class="text-xs text-gray-800 space-y-1">
                 <p>ID: <span class="font-medium">{{ invoice.invoice_no }}</span></p>
                 <p>Tanggal: <span class="font-medium">{{ new Date(invoice.created_at).toLocaleDateString('id-ID') }}</span></p>
               </div>
             </div>
           </div>
-          <NuxtLink :to="`/invoice/${invoice.invoice_id}`" class="bg-gradient-to-r from-[#0080FF] to-[#4DC9E6] text-white text-xs px-3 py-1 rounded-md font-medium">
+          <button class="bg-gradient-to-r from-[#0080FF] to-[#4DC9E6] text-white text-xs px-3 py-1 rounded-md font-medium">
             Detail
-          </NuxtLink>
+          </button>
         </div>
         <div class="flex justify-between items-center mt-4">
           <p class="text-lg font-bold">{{ formatCurrency(invoice.amount) }}</p>

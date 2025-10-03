@@ -4,7 +4,7 @@ import { api } from '~/services/api';
 import { useAuth } from '~/composables/useState';
 
 // Import komponen baru
-import DashboardLoadingSpinner from '~/components/dashboard/LoadingSpinner.vue';
+import DashboardLoadingSpinner from '~/components/LoadingSpinner.vue';
 import SidebarStatus from '~/components/dashboard/SidebarStatus.vue';
 import ProductList from '~/components/dashboard/ProductList.vue';
 import InvoiceHistory from '~/components/dashboard/InvoiceHistory.vue';

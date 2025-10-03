@@ -107,7 +107,7 @@ const verifyOtp = async () => {
       isSuccess.value = true; 
 
       setTimeout(() => {
-        navigateTo('/dashboard/membership/non-aktif');
+        navigateTo('/dashboard/');
       }, 1500);
 
     } else {

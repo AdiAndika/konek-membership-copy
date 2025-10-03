@@ -1,13 +1,20 @@
 // app/services/api.js
 
-const BASE_URL = '/api';
-const TOKEN = '292e149c-57b2-4157-8f7a-7a16293967e8'; // Token Anda
-
 async function request(endpoint, options = {}) {
-  const url = `${BASE_URL}${endpoint}`;
-  
+  // Ambil konfigurasi runtime dan state autentikasi
+  const config = useRuntimeConfig();
   const auth = useAuth();
-  const authToken = auth.value.token || TOKEN;
+
+  // Tentukan Base URL dan Token Fallback dari runtime config
+  const BASE_URL = config.public.OA_API;
+  const FALLBACK_TOKEN = config.public.OA_TOKEN;
+  
+  const url = `${BASE_URL}${endpoint}`;
+
+  // --- LOGIKA UTAMA ---
+  // Prioritaskan token dari sesi login pengguna. Jika tidak ada (pengguna belum login),
+  // gunakan token fallback dari file .env.
+  const authToken = auth.value.token || FALLBACK_TOKEN;
 
   const headers = {
     'Authorization': `Bearer ${authToken}`,
@@ -15,6 +22,7 @@ async function request(endpoint, options = {}) {
     ...options.headers,
   };
 
+  // Jika body adalah FormData, browser akan mengatur Content-Type secara otomatis
   if (options.body instanceof FormData) {
     delete headers['Content-Type'];
   }
@@ -22,15 +30,19 @@ async function request(endpoint, options = {}) {
   try {
     const response = await fetch(url, { ...options, headers });
 
+    // Penanganan error yang lebih detail
     if (!response.ok) {
       const errorData = await response.json().catch(() => {
-        throw new Error(`Server Error: ${response.status} ${response.statusText}. Respons bukan JSON.`);
+        // Jika respons error bukan JSON, buat error manual
+        throw new Error(`Server Error: ${response.status} ${response.statusText}.`);
       });
+      // Lemparkan pesan error dari API
       throw new Error(errorData.message || 'Terjadi kesalahan pada server');
     }
 
+    // Handle respons tanpa konten (misalnya pada request DELETE)
     if (response.status === 204) {
-      return { message: 'Operasi berhasil tanpa konten.' };
+      return { message: 'Operasi berhasil.' };
     }
 
     return response.json();
@@ -40,8 +52,9 @@ async function request(endpoint, options = {}) {
   }
 }
 
+// Semua endpoint API ini tidak perlu diubah, karena sudah menggunakan fungsi `request` yang baru.
 export const api = {
-  // --- Autentikasi  ---
+  // --- Autentikasi ---
   checkUserNumber(phone) {
     const formData = new FormData();
     formData.append('phone', phone);
@@ -68,7 +81,7 @@ export const api = {
 
   updateUser(userId, userData) {
     const formData = new FormData();
-    formData.append('_method', 'PUT'); 
+    formData.append('_method', 'PUT');
     formData.append('full_name', userData.full_name);
     formData.append('email', userData.email);
     if (userData.photo) {
@@ -93,7 +106,6 @@ export const api = {
     });
   },
 
-  // --- PERBAIKAN DI SINI: Hanya ada satu getMembershipDetail dan satu getInvoiceList ---
   getMembershipDetail(userId) {
     const relations = 'users,pelanggan_membership_akun.account_product.paket_addon.files,pelanggan_membership_akun.account_profile';
     return request(`/konek/membership/detail-pelanggan-membership?user_id=${userId}&with=${relations}`);
@@ -102,4 +114,8 @@ export const api = {
   getInvoiceList(userId, perPage = 5, order = 'lowest') {
     return request(`/konek/membership/list-invoice?user_id=${userId}&per_page=${perPage}&order=${order}`);
   },
+
+  getInvoiceDetail(invoiceId) {
+    return request(`/konek/membership/detail-invoice?invoice_id=${invoiceId}&with=order_paket_membership.paket_membership`);
+  }
 };

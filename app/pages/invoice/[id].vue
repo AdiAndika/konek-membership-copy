@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import InvoiceDetail from '~/components/Invoice.vue';
 import { api } from '~/services/api';
 
+import DashboardLoadingSpinner from '~/components/LoadingSpinner.vue';
+
 definePageMeta({
   layout: "blanknav",
 });
@@ -16,24 +18,54 @@ const isLoading = ref(true);
 const error = ref(null);
 
 onMounted(async () => {
+  // --- MODIFIKASI DIMULAI: Tambahkan blok ini untuk tes tampilan ---
+
+  // Anda bisa mengganti `true` dengan `false` untuk mencoba kembali logika API asli.
+  const useMockData = true;
+
+  if (useMockData) {
+    // Isi dengan data tiruan untuk preview
+    invoiceData.value = {
+      id: 'INV/2025/10/KONEK-12345',
+      status: 'Berhasil',
+      paymentDate: new Date(),
+      product: {
+        name: 'Paket Konek Entertainment',
+        description: 'Langganan 1 Bulan',
+      },
+      payment: {
+        method: 'QRIS',
+        subtotal: 99000,
+        adminFee: 0,
+        total: 99000,
+      },
+    };
+    isLoading.value = false;
+    return; // Hentikan eksekusi agar tidak memanggil API
+  }
+  
+  // --- AKHIR MODIFIKASI ---
+
+
+  // Kode asli untuk mengambil data dari API
   try {
     const response = await api.getInvoiceDetail(route.params.id);
     
     if (response.data) {
-      // Menyesuaikan struktur data untuk komponen InvoiceDetail
+      const data = response.data;
       invoiceData.value = {
-        id: response.data.invoice_id,
-        status: response.data.status_pembayaran,
-        paymentDate: response.data.updated_at,
+        id: data.invoice_no,
+        status: data.status,
+        paymentDate: data.updated_at,
         product: {
-          name: response.data.order_paket_membership.paket_membership.nama_paket,
-          description: response.data.order_paket_membership.paket_membership.deskripsi_paket,
+          name: data.order_paket_membership?.paket_membership?.nama_paket || 'Paket Membership',
+          description: data.order_paket_membership?.paket_membership?.deskripsi_paket || 'Langganan Bulanan',
         },
         payment: {
-          method: response.data.payment_method,
-          subtotal: response.data.total_pembayaran, // Asumsi total = subtotal
+          method: data.payment_method || 'N/A',
+          subtotal: data.amount,
           adminFee: 0,
-          total: response.data.total_pembayaran,
+          total: data.amount,
         },
       };
     } else {
@@ -46,6 +78,7 @@ onMounted(async () => {
     isLoading.value = false;
   }
 });
+
 
 const handleBack = () => {
   router.back();
@@ -63,7 +96,7 @@ const handleCopy = (copiedId) => {
 <template>
   <div>
     <div v-if="isLoading" class="flex justify-center items-center h-screen">
-      <p class="text-lg text-gray-500">Memuat detail invoice...</p>
+      <DashboardLoadingSpinner />
     </div>
 
     <div v-else-if="error" class="flex justify-center items-center h-screen">
