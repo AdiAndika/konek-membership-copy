@@ -1,5 +1,7 @@
 <script setup>
-import { useCheckoutState } from '~/composables/useCheckout';
+import { ref } from 'vue';
+// --- MODIFIKASI: Impor komponen modal yang baru dibuat ---
+import ExpiredInvoiceModal from '~/components/notifikasi/ExpiredInvoiceModal.vue';
 
 const props = defineProps({
   invoices: {
@@ -9,33 +11,54 @@ const props = defineProps({
   isLoading: Boolean,
 });
 
-const checkoutState = useCheckoutState();
 const router = useRouter();
+
+// --- MODIFIKASI: Tambahkan state untuk kontrol modal ---
+const showExpiredModal = ref(false);
 
 const handleDetailClick = (invoice) => {
   const status = invoice.status ? invoice.status.toLowerCase() : '';
+  const isExpired = new Date(invoice.due_date) < new Date();
 
-  if (status === 'pending' || status === 'menunggu') {
+  if ((status === 'pending' || status === 'menunggu') && !isExpired) {
     checkoutState.value = {
       totalAmount: invoice.amount,
       paymentUrl: invoice.payment_url,
       expiryDate: invoice.due_date,
     };
     router.push('/payment/checkout');
-  } else {
-    router.push(`/invoice/${invoice.invoice_id}`);
+  } 
+  else if ((status === 'pending' || status === 'menunggu') && isExpired) {
+    // --- MODIFIKASI: Ganti alert() dengan menampilkan modal ---
+    showExpiredModal.value = true;
+  }
+  else {
+    router.push(`/payment/invoices/${invoice.invoice_id}`);
   }
 };
 
-const getStatusClass = (status) => {
-  const lowerCaseStatus = status ? status.toLowerCase() : '';
-  if (lowerCaseStatus === 'paid' || lowerCaseStatus === 'berhasil') {
-    return 'text-green-600';
+// --- MODIFIKASI: Fungsi untuk tombol "Langganan Sekarang" di modal ---
+const handleSubscribeNow = () => {
+  showExpiredModal.value = false; // Tutup modal
+  checkoutState.value = null;     // Kosongkan state
+  router.push('/payment/checkout'); // Arahkan ke checkout step 1
+};
+
+
+const getStatusInfo = (invoice) => {
+  const status = invoice.status ? invoice.status.toLowerCase() : '';
+  const isExpired = new Date(invoice.due_date) < new Date();
+
+  if (status === 'paid' || status === 'berhasil') {
+    return { text: 'Berhasil', class: 'text-green-600' };
   }
-  if (lowerCaseStatus === 'pending') {
-    return 'text-yellow-500';
+  if ((status === 'pending' || status === 'menunggu') && isExpired) {
+    return { text: 'Kadaluwarsa', class: 'text-red-500' };
   }
-  return 'text-red-500';
+  if (status === 'pending' || status === 'menunggu') {
+    return { text: 'Pending', class: 'text-yellow-500' };
+  }
+  return { text: invoice.status || 'Gagal', class: 'text-red-500' };
 };
 
 const formatCurrency = (value) => {
@@ -84,11 +107,27 @@ const formatCurrency = (value) => {
         </div>
         <div class="flex justify-between items-center mt-4">
           <p class="text-lg font-bold">{{ formatCurrency(invoice.amount) }}</p>
-          <p class="font-bold text-sm uppercase" :class="getStatusClass(invoice.status)">
-            {{ invoice.status }}
+          <p class="font-bold text-sm uppercase" :class="getStatusInfo(invoice).class">
+            {{ getStatusInfo(invoice).text }}
           </p>
         </div>
       </div>
     </div>
+
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-opacity duration-200 ease-out"
+        leave-active-class="transition-opacity duration-200 ease-in"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+      >
+        <ExpiredInvoiceModal
+          v-if="showExpiredModal"
+          @close="showExpiredModal = false"
+          @subscribe="handleSubscribeNow"
+        />
+      </Transition>
+    </Teleport>
+
   </section>
 </template>

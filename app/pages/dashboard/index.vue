@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import { api } from '~/services/api';
 import { useAuth } from '~/composables/useState';
 
-// Import komponen baru
+// Import komponen-komponen yang dibutuhkan
 import DashboardLoadingSpinner from '~/components/LoadingSpinner.vue';
 import SidebarStatus from '~/components/dashboard/SidebarStatus.vue';
 import ProductList from '~/components/dashboard/ProductList.vue';
@@ -12,6 +12,9 @@ import ContactCard from '~/components/dashboard/ContactCard.vue';
 import NonActive from '~/components/dashboard/NonActive.vue';
 import AccountModal from '~/components/dashboard/AccountModal.vue';
 import { accountImages, accountsData } from '~/data/accounts.js';
+// Impor modal notifikasi yang baru
+import PendingStatusModal from '~/components/notifikasi/PendingStatusModal.vue';
+
 
 definePageMeta({
   layout: "default",
@@ -19,6 +22,7 @@ definePageMeta({
 
 const auth = useAuth();
 const router = useRouter();
+const route = useRoute();
 
 // --- STATES ---
 const membershipStatus = ref('loading');
@@ -30,11 +34,17 @@ const isLoadingProducts = ref(true);
 const isLoadingInvoices = ref(true);
 const loadError = ref(null);
 
-// --- API CALLS ---
+const showPendingModal = ref(false);
+const modalType = ref('pending');
+
+
+// --- API CALLS & LIFECYCLE HOOKS ---
 onMounted(async () => {
   if (!auth.value.user || !auth.value.user.id) {
     return router.push('/auth/login');
   }
+
+  const hasSeenNotification = sessionStorage.getItem('hasSeenPendingNotification');
 
   try {
     const response = await api.getMembershipDetail(auth.value.user.id);
@@ -46,10 +56,37 @@ onMounted(async () => {
       membershipAccounts.value = response.data.pelanggan_membership_akun || [];
       const invoiceResponse = await api.getInvoiceList(auth.value.user.id);
       invoices.value = invoiceResponse.data || [];
+
     } else if (status === 'pending') {
       membershipStatus.value = 'pending';
       const invoiceResponse = await api.getInvoiceList(auth.value.user.id);
       invoices.value = invoiceResponse.data || [];
+
+      if (!hasSeenNotification) {
+        // --- MODIFIKASI LOGIKA NOTIFIKASI ---
+        const pendingInvoice = invoices.value.find(inv => 
+          inv.status.toLowerCase() === 'pending' && new Date(inv.due_date) > new Date()
+        );
+        const expiredPendingInvoice = invoices.value.find(inv =>
+          inv.status.toLowerCase() === 'pending' && new Date(inv.due_date) < new Date()
+        );
+
+        if (route.query.status === 'success') {
+          modalType.value = 'success';
+          showPendingModal.value = true;
+          router.replace({ query: {} });
+        } else if (pendingInvoice) {
+          modalType.value = 'pending';
+          showPendingModal.value = true;
+        } else if (expiredPendingInvoice) {
+          // Tambahkan kondisi ini untuk invoice kedaluwarsa
+          modalType.value = 'expired';
+          showPendingModal.value = true;
+        }
+        
+        sessionStorage.setItem('hasSeenPendingNotification', 'true');
+      }
+
     } else {
       membershipStatus.value = 'non-active';
     }
@@ -63,7 +100,7 @@ onMounted(async () => {
 });
 
 
-// --- COMPUTED PROPERTIES FOR PRODUCT LIST ---
+// ... (computed properties biarkan sama) ...
 const productListData = computed(() => {
   if (membershipStatus.value === 'pending') {
     return [
@@ -110,6 +147,28 @@ const openAccountModal = (item) => {
   }
 };
 const closeAccountModal = () => { isModalOpen.value = false; };
+
+// --- MODIFIKASI: Ganti nama dan sesuaikan logika ---
+const handleModalAction = () => {
+  showPendingModal.value = false; // Selalu tutup modal setelah aksi
+
+  if (modalType.value === 'pending') {
+    const pendingInvoice = invoices.value.find(inv => 
+      inv.status.toLowerCase() === 'pending' && new Date(inv.due_date) > new Date()
+    );
+    if (pendingInvoice) {
+      checkoutState.value = {
+        totalAmount: pendingInvoice.amount,
+        paymentUrl: pendingInvoice.payment_url,
+        expiryDate: pendingInvoice.due_date,
+      };
+      router.push('/payment/checkout');
+    }
+  } else if (modalType.value === 'expired') {
+    checkoutState.value = null;
+    router.push('/payment/checkout');
+  }
+};
 </script>
 
 <template>
@@ -177,5 +236,22 @@ const closeAccountModal = () => { isModalOpen.value = false; };
         </div>
       </Transition>
     </Teleport>
+
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-opacity duration-200 ease-out"
+        leave-active-class="transition-opacity duration-200 ease-in"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+      >
+        <PendingStatusModal
+          v-if="showPendingModal"
+          :type="modalType"
+          @close="showPendingModal = false"
+          @action="handleModalAction"
+        />
+      </Transition>
+    </Teleport>
+
   </div>
 </template>

@@ -1,317 +1,307 @@
-<script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { api } from '~/services/api';
-import { useAuth } from '~/composables/useState';
-import { useCheckoutState } from '~/composables/useCheckout';
+<script setup lang="ts">
+import { computed, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { api } from "~/services/api.js";
+import { useAuth } from "~/composables/useState";
 
-import DashboardLoadingSpinner from '~/components/LoadingSpinner.vue';
-
-// Mendefinisikan layout default
-definePageMeta({
-  layout: 'default',
-});
-
-// --- STATE MANAGEMENT ---
-const auth = useAuth();
-const checkoutState = useCheckoutState(); // State untuk menyimpan invoice pending
+// --- State dari composables & router ---
+interface AuthUser {
+  id: number;
+}
+interface AuthState {
+  user: AuthUser | null;
+}
+const auth = useAuth() as { value: AuthState };
 const router = useRouter();
+const route = useRoute();
 
-// --- LOCAL STATE ---
-const packageDetails = ref(null); // Detail paket dari API
-const discountCode = ref('');
-const isLoading = ref(false); // Untuk status loading tombol
-const errorMessage = ref('');
-const timer = ref(1800); // 30 menit dalam detik
-let timerInterval = null;
+// --- State lokal untuk proses pembayaran ---
+const isProcessing = ref(false);
+const paymentError = ref<string | null>(null);
+const showInvoiceButtonOnError = ref(false);
 
-// --- COMPUTED PROPERTIES ---
-// Properti ini menjadi penentu utama untuk menampilkan Step 1 atau Step 2
-const isStep2 = computed(() => !!checkoutState.value);
+// --- State global untuk menyimpan checkout link ---
+const checkoutLink = useState("checkoutLink", () => null);
 
-// Menghitung harga setelah diskon (saat ini diskon masih 0)
-const priceAfterDiscount = computed(() => {
-  const price = packageDetails.value?.price || 0;
-  // Logika diskon bisa ditambahkan di sini jika diperlukan
-  return price;
+// --- Interface untuk tipe data paket ---
+interface PackageDetail {
+  id: number;
+  name: string;
+  subscription_type: "monthly" | "yearly" | string;
+  duration: string;
+  price: number;
+}
+const packageId = computed(() => (route.query.id as string) || "1");
+
+// --- Fetching data detail paket dari API ---
+const {
+  data: apiResponse,
+  pending,
+  error,
+} = await useAsyncData<{ data: PackageDetail }>(
+  `package-detail-${packageId.value}`,
+  () => api.getMembershipPackage(packageId.value)
+);
+const packageData = computed(() => apiResponse.value?.data);
+
+// --- FUNGSI UTAMA: Logika untuk menangani pembayaran ---
+async function handlePayment() {
+  if (isProcessing.value) return;
+  isProcessing.value = true;
+  paymentError.value = null;
+  showInvoiceButtonOnError.value = false;
+
+  if (!auth.value.user) {
+    paymentError.value = "Anda harus login terlebih dahulu.";
+    isProcessing.value = false;
+    return router.push("/auth/login");
+  }
+
+  try {
+    const payload = {
+      user_id: auth.value.user.id,
+      membership_paket_id: packageId.value,
+    };
+    const orderResponse = await api.orderPackage(payload);
+
+    // PERUBAHAN DI SINI
+    if (orderResponse.data?.checkout_link) {
+      // 1. Simpan link ke dalam state
+      checkoutLink.value = orderResponse.data.checkout_link;
+      // 2. Arahkan ke halaman /payment/pay
+      router.push("/payment/pay");
+    } else {
+      throw new Error("Link pembayaran tidak valid.");
+    }
+  } catch (err: any) {
+    console.error("Gagal memproses pembayaran:", err);
+    paymentError.value =
+      err.message || "Terjadi kesalahan saat memproses pembayaran.";
+    if (err.message && err.message.includes("Terjadi Kesalahan Pada Server")) {
+      showInvoiceButtonOnError.value = true;
+    }
+  } finally {
+    isProcessing.value = false;
+  }
+}
+
+// --- Computed Properties (Tidak ada perubahan) ---
+const durationText = computed(() => {
+  if (!packageData.value) return "";
+  const type = packageData.value.subscription_type;
+  return `${packageData.value.duration} ${
+    type === "monthly" ? "Bulan" : "Tahun"
+  }`;
 });
-
-const formattedTimer = computed(() => {
-  if (timer.value <= 0) return '00:00:00';
-  const hours = Math.floor(timer.value / 3600);
-  const minutes = Math.floor((timer.value % 3600) / 60);
-  const seconds = timer.value % 60;
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+const startDate = computed(() => new Date());
+const endDate = computed(() => {
+  if (!packageData.value) return new Date();
+  const end = new Date(startDate.value);
+  const duration = parseInt(packageData.value.duration, 10);
+  if (packageData.value.subscription_type === "monthly") {
+    end.setMonth(end.getMonth() + duration);
+  } else {
+    end.setFullYear(end.getFullYear() + duration);
+  }
+  return end;
 });
-
-// --- HELPER FUNCTIONS ---
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-  }).format(value);
-};
-
-const formatDateShort = (date) => new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(date);
-const formatTime = (date) => new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: 'numeric', hour12: true }).format(date).toLowerCase();
-
-// --- TIMER LOGIC ---
-const startTimer = () => {
-  if (!checkoutState.value || !checkoutState.value.expiryDate) return;
-
-  const now = new Date();
-  const expiry = new Date(checkoutState.value.expiryDate);
-  const diffSeconds = Math.floor((expiry - now) / 1000);
-
-  if (diffSeconds <= 0) {
-    timer.value = 0;
-    // Jika waktu habis, reset state agar kembali ke Step 1
-    checkoutState.value = null;
-    return;
-  }
-  
-  timer.value = diffSeconds;
-
-  timerInterval = setInterval(() => {
-    if (timer.value > 0) {
-      timer.value--;
-    } else {
-      clearInterval(timerInterval);
-      // Reset state saat timer habis
-      checkoutState.value = null;
-    }
-  }, 1000);
-};
-
-// --- API & ACTIONS ---
-const handlePayment = async () => {
-  if (!auth.value.user?.id || !packageDetails.value) {
-    errorMessage.value = 'Data pengguna atau paket tidak ditemukan. Silakan coba lagi.';
-    return;
-  }
-
-  isLoading.value = true;
-  errorMessage.value = '';
-
-  const now = new Date();
-  const endDate = new Date(now);
-  endDate.setMonth(now.getMonth() + 1); // Durasi 1 bulan
-
-  const payload = {
-    product_membership_id: packageDetails.value.id,
-    user_id: auth.value.user.id,
-    subscription_type: 'monthly',
-    duration: '1',
-    start_at: now.toISOString().slice(0, 19).replace('T', ' '),
-    end_at: endDate.toISOString().slice(0, 19).replace('T', ' '),
-    redirect_url: window.location.href, // URL kembali setelah pembayaran
-  };
-
-  try {
-    const response = await api.orderPackage(payload);
-    console.log('Order berhasil dibuat:', response);
-
-    if (response.data?.latest_invoice?.[0] && response.data.payment_url) {
-      const invoice = response.data.latest_invoice[0];
-      
-      // Simpan data penting ke state checkout
-      checkoutState.value = {
-        totalAmount: invoice.amount,
-        paymentUrl: response.data.payment_url, // **PENTING**: Asumsi API mengembalikan ini
-        expiryDate: invoice.due_date,
-      };
-
-      // Alihkan pengguna ke halaman pembayaran
-      window.location.href = response.data.payment_url;
-    } else {
-      throw new Error('Respons API tidak valid atau tidak berisi URL pembayaran.');
-    }
-  } catch (error) {
-    console.error('Gagal membuat pesanan:', error);
-    errorMessage.value = error.message || 'Terjadi kesalahan saat memproses pesanan Anda.';
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-const handleChoosePaymentMethod = () => {
-  if (checkoutState.value?.paymentUrl) {
-    window.location.href = checkoutState.value.paymentUrl;
-  } else {
-    alert('URL Pembayaran tidak ditemukan. Silakan batalkan dan coba lagi.');
-  }
-};
-
-const cancelOrder = () => {
-  checkoutState.value = null; // Menghapus state akan mengembalikan ke Step 1
-  if (timerInterval) clearInterval(timerInterval);
-};
-
-// --- LIFECYCLE HOOKS ---
-onMounted(async () => {
-  if (isStep2.value) {
-    startTimer();
-  } else {
-    // Jika bukan Step 2, ambil detail paket untuk ditampilkan di Step 1
-    isLoading.value = true;
-    try {
-      const response = await api.getMembershipPackage(1); // Ambil detail paket ID 1
-      packageDetails.value = response.data;
-    } catch (error) {
-      errorMessage.value = 'Gagal memuat detail paket.';
-      console.error(error);
-    } finally {
-      isLoading.value = false;
-    }
-  }
+const formatDate = (date: Date) => ({
+  date: date.toLocaleDateString("id-ID", { day: "numeric", month: "short" }),
+  time:
+    date
+      .toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
+      .replace(".", ":") + " pm",
 });
-
-onUnmounted(() => {
-  if (timerInterval) clearInterval(timerInterval);
+const formattedStartDate = computed(() => formatDate(startDate.value));
+const formattedEndDate = computed(() => formatDate(endDate.value));
+const formattedPrice = computed(() => {
+  if (!packageData.value) return "Rp 0,00";
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 2,
+  }).format(packageData.value.price);
 });
 </script>
 
 <template>
-  <div class="bg-gray-50 min-h-screen py-8 font-sans">
-    <div class="container mx-auto max-w-lg px-4">
-
-      <div v-if="isStep2" class="flex flex-col h-full">
-        <div class="flex justify-between items-center mb-6">
-          <h1 class="text-xl font-bold text-gray-800">Terakhir Bayar</h1>
-          <p class="text-xl font-bold text-red-500">{{ formattedTimer }}</p>
-        </div>
-
-        <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-6">
-          <h2 class="text-lg font-semibold text-gray-800 mb-4">Rincian Pembelian</h2>
-          <div class="space-y-3 text-sm text-gray-600">
-            <div class="flex justify-between">
-              <p>Harga Paket</p>
-              <p>{{ formatCurrency(checkoutState.totalAmount) }}</p>
-            </div>
-            <div class="flex justify-between">
-              <p>Diskon</p>
-              <p>0%</p>
-            </div>
-          </div>
-          <hr class="my-4"/>
-          <div class="flex justify-between items-center">
-            <p class="text-base font-bold text-gray-900">Total Harga</p>
-            <p class="text-lg font-bold text-gray-900">{{ formatCurrency(checkoutState.totalAmount) }}</p>
-          </div>
-        </div>
-
-        <div class="bg-white border border-gray-200 rounded-xl flex items-center p-4 shadow-sm">
-          <div class="bg-blue-100 p-3 rounded-full mr-4">
-            <svg class="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M21.928 10.609c.074.332.115.674.115 1.026C22.043 12.015 22 12.44 22 13c0 4.97-4.03 9-9 9-4.971 0-9-4.03-9-9 0-4.971 4.029-9 9-9h.215c.032.002.065.003.097.006A8.994 8.994 0 0113 4c4.97 0 9 4.03 9 9 0 .56-.043.985-.115 1.391L21.928 10.609zM13 2c-5.839 0-10.748 4.484-10.992 10.198C1.869 17.576 6.012 22 11.05 22c4.97 0 9-4.03 9-9 0-.62-.05-1.228-.147-1.823L19.928 7.39c.074.332.115.674.115 1.026.001.38-.039.754-.114 1.12L20 10c0 4.411-3.589 8-8 8-4.412 0-8-3.589-8-8s3.588-8 8-8h.215a8.973 8.973 0 010 .006A8.994 8.994 0 0113 2z"/></svg>
-          </div>
-          <div class="flex-grow">
-            <h3 class="font-semibold text-gray-800">Metode pembayaran</h3>
-            <p class="text-sm text-gray-500">Transfer, e-wallet, QRIS</p>
-          </div>
-          <button @click="handleChoosePaymentMethod" class="bg-blue-500 text-white font-semibold py-2 px-6 rounded-lg text-sm hover:bg-blue-600 transition-colors">
-            Pilih
-          </button>
-        </div>
-
-        <div class="mt-auto pt-8 text-center">
-            <button @click="cancelOrder" class="text-red-500 font-bold">
-              Batalkan Pesanan
-            </button>
-        </div>
+  <div class="bg-slate-50 min-h-screen font-sans">
+    <main class="p-4 pt-8 max-w-md mx-auto">
+      <div v-if="pending" class="text-center py-10 text-slate-500">
+        <p>Memuat detail paket...</p>
+      </div>
+      <div
+        v-else-if="error"
+        class="text-center py-10 text-rose-500 bg-rose-50 p-4 rounded-lg border border-rose-200"
+      >
+        <p class="font-semibold">Gagal memuat data.</p>
+        <p class="text-sm">{{ error.message }}</p>
       </div>
 
-      <div v-else>
-        <div v-if="isLoading && !packageDetails" class="text-center py-10">
-          <DashboardLoadingSpinner />
-        </div>
-        <div v-else-if="errorMessage" class="text-center py-10 text-red-500">
-          <p>{{ errorMessage }}</p>
-        </div>
-        <div v-else-if="packageDetails">
-            <div class="bg-gradient-to-br from-blue-300 via-blue-400 to-cyan-400 text-white p-5 rounded-2xl shadow-lg mb-6">
-              <p class="text-sm font-light text-blue-900">Detail Orders</p>
-              <h1 class="text-2xl font-bold text-gray-900 mt-1 mb-4">{{ packageDetails.name }}</h1>
-              
-              <div class="flex justify-between items-center">
-                <div class="text-center">
-                  <p class="font-semibold text-gray-800">{{ formatDateShort(new Date()) }}</p>
-                  <p class="text-xs text-gray-700">{{ formatTime(new Date()) }}</p>
-                </div>
-                
-                <div class="relative">
-                  <div class="bg-white/80 backdrop-blur-sm border-2 border-white/50 rounded-full px-4 py-2 flex items-center gap-2 shadow-inner">
-                      <span class="font-bold text-blue-500">Paket</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span class="font-bold text-blue-500">Konek</span>
-                  </div>
-                  <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                    1 Bulan
-                  </span>
-                </div>
-
-                <div class="text-center">
-                  <p class="font-semibold text-gray-800">{{ formatDateShort(new Date(new Date().setMonth(new Date().getMonth() + 1))) }}</p>
-                  <p class="text-xs text-gray-700">{{ formatTime(new Date()) }}</p>
-                </div>
-              </div>
+      <div v-else-if="packageData" class="space-y-5">
+        <div
+          class="bg-gradient-to-br from-blue-500 to-cyan-400 text-white rounded-2xl shadow-lg p-5 text-center relative overflow-hidden"
+        >
+          <p class="text-sm font-light opacity-80 mb-2">Paket Anda</p>
+          <h1 class="text-2xl font-bold mb-4">{{ packageData.name }}</h1>
+          <div class="flex justify-between items-center text-xs font-medium">
+            <div class="text-left w-1/3">
+              <p>{{ formattedStartDate.date }}</p>
+              <p class="opacity-80">{{ formattedStartDate.time }}</p>
             </div>
-
-            <div class="bg-white border border-gray-200 rounded-xl flex items-center p-3 mb-6 shadow-sm">
-              <div class="bg-blue-100 p-2 rounded-full mr-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 00-2-2H5z" />
-                </svg>
-              </div>
-              <label for="discount-code" class="text-gray-700 font-semibold whitespace-nowrap">Masukan Kode Diskon</label>
-              <input 
-                id="discount-code"
-                v-model="discountCode" 
-                type="text" 
-                placeholder="Masukkan Kode"
-                class="w-full text-right bg-transparent border-none focus:ring-0 placeholder-gray-400"
-              />
-            </div>
-
-            <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-              <h2 class="text-lg font-bold text-gray-800 mb-4">Rincian Pembelian</h2>
-              <div class="space-y-3 text-sm text-gray-600">
-                <div class="flex justify-between">
-                  <p>Harga Paket</p>
-                  <p>{{ formatCurrency(packageDetails.price) }}</p>
-                </div>
-                <div class="flex justify-between">
-                  <p>Diskon</p>
-                  <p>0%</p>
-                </div>
-              </div>
-              <hr class="my-4"/>
-              <div class="flex justify-between items-center">
-                <p class="text-base font-bold text-gray-900">Total Harga</p>
-                <p class="text-lg font-bold text-gray-900">{{ formatCurrency(priceAfterDiscount) }}</p>
-              </div>
-            </div>
-
-            <div class="mt-8">
-              <div class="flex items-center gap-4">
-                <button @click="router.back()" class="text-red-500 font-bold px-6 py-3">
-                  Batalkan
-                </button>
-                <button 
-                  @click="handlePayment"
-                  :disabled="isLoading"
-                  class="flex-grow bg-blue-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-blue-600 active:scale-95 transition-all duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex justify-center items-center"
+            <div class="flex-shrink-0 relative pt-4">
+              <div class="bg-white/90 rounded-full p-2 shadow-md">
+                <div
+                  class="bg-blue-600 rounded-full h-16 w-16 flex items-center justify-center"
                 >
-                  <div v-if="isLoading" class="w-5 h-5">
-                    <DashboardLoadingSpinner />
-                  </div>
-                  <span v-else>Pembayaran</span>
-                </button>
+                  <svg
+                    class="w-8 h-8 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <div
+                class="absolute top-0 left-1/2 -translate-x-1/2 bg-white/25 rounded-full px-3 py-1 text-xs backdrop-blur-sm"
+              >
+                {{ durationText }}
               </div>
             </div>
+            <div class="text-right w-1/3">
+              <p>{{ formattedEndDate.date }}</p>
+              <p class="opacity-80">{{ formattedEndDate.time }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="bg-white rounded-xl shadow-md p-4 flex items-center justify-between border"
+        >
+          <div class="flex items-center space-x-3">
+            <div class="bg-blue-50 text-blue-600 rounded-full p-2">
+              <svg
+                class="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 7h.01M7 3h5a2 2 0 012 2v5a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2zm0 0v11m0-11h11m0 0v11m0-11L3 3m11 11L3 3"
+                />
+              </svg>
+            </div>
+            <p class="font-semibold text-slate-700">Masukan Kode Diskon</p>
+          </div>
+          <a
+            href="#"
+            class="text-sm font-medium text-slate-400 hover:text-slate-600"
+            >Masukkan Kode</a
+          >
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md p-5 border">
+          <h2 class="text-lg font-bold text-slate-800 mb-4">
+            Rincian Pembelian
+          </h2>
+          <div class="space-y-3 text-sm">
+            <div class="flex justify-between text-slate-600">
+              <p>Harga Paket</p>
+              <p class="font-medium">{{ formattedPrice }}</p>
+            </div>
+            <div class="flex justify-between text-slate-600">
+              <p>Diskon</p>
+              <p class="font-medium">0%</p>
+            </div>
+            <div class="flex justify-between text-slate-500 text-xs">
+              <p>Setelah Mendapatkan Diskon<br />& Penawaran Lainnya</p>
+              <p class="font-medium self-end">{{ formattedPrice }}</p>
+            </div>
+          </div>
+          <hr class="my-4 border-slate-200" />
+          <div class="flex justify-between items-center">
+            <p class="font-bold text-slate-800">Total Harga</p>
+            <p class="text-xl font-extrabold text-blue-600">
+              {{ formattedPrice }}
+            </p>
+          </div>
+        </div>
+
+        <div
+          v-if="paymentError"
+          class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-lg shadow-sm"
+        >
+          <div class="flex items-start gap-3">
+            <div class="flex-shrink-0 text-rose-500 pt-0.5">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                class="w-5 h-5"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </div>
+            <div>
+              <h3 class="font-semibold text-rose-800">Gagal Membuat Pesanan</h3>
+              <p class="text-sm text-rose-700 mt-1">{{ paymentError }}</p>
+              <NuxtLink
+                v-if="showInvoiceButtonOnError"
+                to="/payment/invoices"
+                class="mt-3 inline-block bg-slate-700 text-white font-bold py-2 px-5 rounded-lg text-sm hover:bg-slate-800 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
+              >
+                Lihat Riwayat Pembayaran
+              </NuxtLink>
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-4 flex items-center justify-between">
+          <NuxtLink
+            to="/dashboard/membership/non-aktif"
+            class="text-rose-500 font-bold hover:text-rose-700 transition-colors"
+            >Batalkan</NuxtLink
+          >
+          <a
+            href="#"
+            @click.prevent="handlePayment"
+            :class="[
+              'bg-blue-600 text-white font-bold py-3 px-10 rounded-xl shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300',
+              { 'opacity-50 cursor-not-allowed': isProcessing },
+            ]"
+            :aria-disabled="isProcessing"
+          >
+            {{ isProcessing ? "Memproses..." : "Pembayaran" }}
+          </a>
         </div>
       </div>
-    </div>
+    </main>
   </div>
 </template>
+
+<style scoped>
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+.font-sans {
+  font-family: "Inter", sans-serif;
+}
+</style>
