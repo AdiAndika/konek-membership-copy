@@ -28,7 +28,7 @@ const emit = defineEmits(['open-modal']);
           Lihat akun
         </button>
         <p v-else-if="status === 'pending'" class="text-yellow-500 font-semibold">
-          Menunggu...
+          Lanjutkan Pembayaran
         </p>
       </div>
     </div>

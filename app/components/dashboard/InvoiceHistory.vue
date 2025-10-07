@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
-// --- MODIFIKASI: Impor komponen modal yang baru dibuat ---
 import ExpiredInvoiceModal from '~/components/notifikasi/ExpiredInvoiceModal.vue';
+import { useState } from '#app';
 
 const props = defineProps({
   invoices: {
@@ -12,38 +12,19 @@ const props = defineProps({
 });
 
 const router = useRouter();
-
-// --- MODIFIKASI: Tambahkan state untuk kontrol modal ---
+const checkoutState = useState('checkoutState', () => null);
 const showExpiredModal = ref(false);
 
 const handleDetailClick = (invoice) => {
-  const status = invoice.status ? invoice.status.toLowerCase() : '';
-  const isExpired = new Date(invoice.due_date) < new Date();
-
-  if ((status === 'pending' || status === 'menunggu') && !isExpired) {
-    checkoutState.value = {
-      totalAmount: invoice.amount,
-      paymentUrl: invoice.payment_url,
-      expiryDate: invoice.due_date,
-    };
-    router.push('/payment/checkout');
-  } 
-  else if ((status === 'pending' || status === 'menunggu') && isExpired) {
-    // --- MODIFIKASI: Ganti alert() dengan menampilkan modal ---
-    showExpiredModal.value = true;
-  }
-  else {
-    router.push(`/payment/invoices/${invoice.invoice_id}`);
-  }
+  // Navigasi ke halaman invoice dengan query ID untuk menampilkan detail
+  router.push(`/payment/invoices?id=${invoice.invoice_id}`);
 };
 
-// --- MODIFIKASI: Fungsi untuk tombol "Langganan Sekarang" di modal ---
 const handleSubscribeNow = () => {
-  showExpiredModal.value = false; // Tutup modal
-  checkoutState.value = null;     // Kosongkan state
-  router.push('/payment/checkout'); // Arahkan ke checkout step 1
+  showExpiredModal.value = false;
+  checkoutState.value = null;
+  router.push('/payment/checkout');
 };
-
 
 const getStatusInfo = (invoice) => {
   const status = invoice.status ? invoice.status.toLowerCase() : '';
@@ -77,6 +58,9 @@ const formatCurrency = (value) => {
       <h1 class="text-2xl md:text-3xl font-semibold text-gray-900">
         Histori Pembelian
       </h1>
+      <NuxtLink to="/payment/invoices" class="text-blue-600 font-semibold hover:underline">
+        Lihat Semua
+      </NuxtLink>
     </div>
 
     <div v-if="isLoading" class="text-center p-4">Memuat histori...</div>

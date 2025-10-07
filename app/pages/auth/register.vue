@@ -15,9 +15,9 @@ const registerViaWhatsApp = () => {
 
   isLoading.value = true;
 
-  // Format pesan HANYA berisi Username dan Email, sesuai permintaan Anda
+  // Format pesan sesuai dengan permintaan baru
   const message = encodeURIComponent(
-    `Register\nUsername:\nEmail:`
+    `Membership Register\nUsername: Test User\nEmail: testuser25@gmail.com`
   );
   
   const whatsappUrl = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${message}`;

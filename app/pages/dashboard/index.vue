@@ -12,8 +12,8 @@ import ContactCard from '~/components/dashboard/ContactCard.vue';
 import NonActive from '~/components/dashboard/NonActive.vue';
 import AccountModal from '~/components/dashboard/AccountModal.vue';
 import { accountImages, accountsData } from '~/data/accounts.js';
-// Impor modal notifikasi yang baru
 import PendingStatusModal from '~/components/notifikasi/PendingStatusModal.vue';
+import ReminderPopup from '~/components/notifikasi/ReminderPopup.vue';
 
 
 definePageMeta({
@@ -37,14 +37,15 @@ const loadError = ref(null);
 const showPendingModal = ref(false);
 const modalType = ref('pending');
 
+// 2. State untuk notifikasi reminder
+const showReminderPopup = ref(false);
+
 
 // --- API CALLS & LIFECYCLE HOOKS ---
 onMounted(async () => {
   if (!auth.value.user || !auth.value.user.id) {
     return router.push('/auth/login');
   }
-
-  const hasSeenNotification = sessionStorage.getItem('hasSeenPendingNotification');
 
   try {
     const response = await api.getMembershipDetail(auth.value.user.id);
@@ -57,34 +58,41 @@ onMounted(async () => {
       const invoiceResponse = await api.getInvoiceList(auth.value.user.id);
       invoices.value = invoiceResponse.data || [];
 
+      // 3. Logika untuk menampilkan notifikasi reminder
+      const expiryDate = new Date(response.data.end_at);
+      const today = new Date();
+      const diffTime = expiryDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      // Tampilkan popup jika masa aktif tersisa 7 hari atau kurang
+      if (diffDays <= 15 && diffDays > 0) {
+        showReminderPopup.value = true;
+      }
+
+      if (route.query.status === 'success') {
+        modalType.value = 'success';
+        showPendingModal.value = true;
+        router.replace({ query: {} });
+      }
+
     } else if (status === 'pending') {
       membershipStatus.value = 'pending';
       const invoiceResponse = await api.getInvoiceList(auth.value.user.id);
       invoices.value = invoiceResponse.data || [];
+      
+      const pendingInvoice = invoices.value.find(inv => 
+        (inv.status.toLowerCase() === 'pending' || inv.status.toLowerCase() === 'menunggu') && new Date(inv.due_date) > new Date()
+      );
+      const expiredPendingInvoice = invoices.value.find(inv =>
+        (inv.status.toLowerCase() === 'pending' || inv.status.toLowerCase() === 'menunggu') && new Date(inv.due_date) < new Date()
+      );
 
-      if (!hasSeenNotification) {
-        // --- MODIFIKASI LOGIKA NOTIFIKASI ---
-        const pendingInvoice = invoices.value.find(inv => 
-          inv.status.toLowerCase() === 'pending' && new Date(inv.due_date) > new Date()
-        );
-        const expiredPendingInvoice = invoices.value.find(inv =>
-          inv.status.toLowerCase() === 'pending' && new Date(inv.due_date) < new Date()
-        );
-
-        if (route.query.status === 'success') {
-          modalType.value = 'success';
-          showPendingModal.value = true;
-          router.replace({ query: {} });
-        } else if (pendingInvoice) {
-          modalType.value = 'pending';
-          showPendingModal.value = true;
-        } else if (expiredPendingInvoice) {
-          // Tambahkan kondisi ini untuk invoice kedaluwarsa
-          modalType.value = 'expired';
-          showPendingModal.value = true;
-        }
-        
-        sessionStorage.setItem('hasSeenPendingNotification', 'true');
+      if (pendingInvoice) {
+        modalType.value = 'pending';
+        showPendingModal.value = true;
+      } else if (expiredPendingInvoice) {
+        modalType.value = 'expired';
+        showPendingModal.value = true;
       }
 
     } else {
@@ -100,7 +108,6 @@ onMounted(async () => {
 });
 
 
-// ... (computed properties biarkan sama) ...
 const productListData = computed(() => {
   if (membershipStatus.value === 'pending') {
     return [
@@ -137,7 +144,6 @@ const productListData = computed(() => {
   return [];
 });
 
-// --- MODAL LOGIC ---
 const isModalOpen = ref(false);
 const selectedAccount = ref(null);
 const openAccountModal = (item) => {
@@ -148,24 +154,22 @@ const openAccountModal = (item) => {
 };
 const closeAccountModal = () => { isModalOpen.value = false; };
 
-// --- MODIFIKASI: Ganti nama dan sesuaikan logika ---
 const handleModalAction = () => {
-  showPendingModal.value = false; // Selalu tutup modal setelah aksi
+  showPendingModal.value = false; 
 
   if (modalType.value === 'pending') {
     const pendingInvoice = invoices.value.find(inv => 
-      inv.status.toLowerCase() === 'pending' && new Date(inv.due_date) > new Date()
+      (inv.status.toLowerCase() === 'pending' || inv.status.toLowerCase() === 'menunggu') && new Date(inv.due_date) > new Date()
     );
-    if (pendingInvoice) {
-      checkoutState.value = {
-        totalAmount: pendingInvoice.amount,
-        paymentUrl: pendingInvoice.payment_url,
-        expiryDate: pendingInvoice.due_date,
-      };
-      router.push('/payment/checkout');
+    
+    if (pendingInvoice && pendingInvoice.payment && pendingInvoice.payment.checkout_link) {
+      window.location.href = pendingInvoice.payment.checkout_link;
+    } else {
+      console.warn('Link pembayaran tidak ditemukan untuk invoice pending. Mengarahkan ke riwayat invoice.');
+      router.push('/payment/invoices');
     }
+
   } else if (modalType.value === 'expired') {
-    checkoutState.value = null;
     router.push('/payment/checkout');
   }
 };
@@ -178,7 +182,7 @@ const handleModalAction = () => {
     </div>
 
     <DashboardNonActive v-else-if="membershipStatus === 'non-active'" :user-full-name="userFullName" />
-
+    
     <div v-else style="background: linear-gradient(180deg, #0080ff 0%, #fff 25%)">
       <div class="container mx-auto px-4 lg:px-8 py-8">
         <div class="lg:flex lg:gap-8 xl:gap-12">
@@ -249,6 +253,21 @@ const handleModalAction = () => {
           :type="modalType"
           @close="showPendingModal = false"
           @action="handleModalAction"
+        />
+      </Transition>
+    </Teleport>
+
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-opacity duration-300 ease-out"
+        leave-active-class="transition-opacity duration-200 ease-in"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+      >
+        <ReminderPopup
+          v-if="showReminderPopup && membershipDetails"
+          :expiry-date="membershipDetails.end_at"
+          @close="showReminderPopup = false"
         />
       </Transition>
     </Teleport>

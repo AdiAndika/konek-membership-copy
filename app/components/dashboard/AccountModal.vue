@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { ADMIN_WHATSAPP_NUMBER } from '~/utils/constants.js';
 
-defineProps({
+const props = defineProps({
   account: {
     type: Object,
     default: () => ({}),
@@ -28,6 +29,23 @@ const copyToClipboard = async (text, field) => {
     copyStatus.value[field] = 'Gagal';
   }
 };
+
+// Membuat link WhatsApp dengan template pesan refund
+const refundLink = computed(() => {
+  const template = `Halo Admin,
+
+Saya ingin mengajukan permohonan pengembalian dana (refund) untuk produk berikut:
+
+Nama: [Isi Nama Lengkap Anda]
+Email: [Isi Email Anda]
+Paket: Konek Membership
+
+Mohon bantuannya. Terima kasih.`;
+  
+  const encodedMessage = encodeURIComponent(template);
+  return `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodedMessage}`;
+});
+
 </script>
 
 <template>
@@ -37,7 +55,7 @@ const copyToClipboard = async (text, field) => {
   >
     <header class="relative flex-shrink-0 p-4 border-b border-gray-200 flex justify-center items-center">
       <h2 class="text-xl font-bold text-gray-800 text-center">
-        {{ account.owned ? 'Akun & Tutorial Aktivasi' : 'Produk Belum Aktif' }}
+        {{ account.owned ? 'Akun & Tutorial Aktivasi' : 'Informasi Akun' }}
       </h2>
       <button
         @click="emit('close')"
@@ -53,17 +71,18 @@ const copyToClipboard = async (text, field) => {
     <div class="overflow-y-auto p-6">
       
       <div v-if="!account.owned" class="text-center py-8">
-        <h3 class="text-xl font-bold mb-4">Anda Belum Berlangganan</h3>
+        <h3 class="text-xl font-bold mb-4">Akun Sedang Disiapkan</h3>
         <p class="text-gray-600 mb-6">
-          Aktifkan paket Konek Plus Membership untuk mendapatkan akses ke <span class="font-semibold">{{ account.product }}</span> dan produk lainnya.
+          Harap tunggu, akun <span class="font-semibold">{{ account.product }}</span> Anda sedang dalam proses penyiapan. Jika akun belum siap dalam 30 menit, Anda dapat mengajukan pengembalian dana.
         </p>
-        <NuxtLink 
-          to="/payment/checkout" 
-          @click="emit('close')"
-          class="inline-block bg-blue-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-600 transition-colors"
+        <a 
+          :href="refundLink"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-block bg-green-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-600 transition-colors"
         >
-          Langganan Sekarang
-        </NuxtLink>
+          Hubungi Admin untuk Refund
+        </a>
       </div>
 
       <div v-else class="mx-auto space-y-8">
