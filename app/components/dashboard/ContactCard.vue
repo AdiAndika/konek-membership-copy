@@ -35,7 +35,7 @@ const whatsappLink = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}`;
       >
         <div class="flex items-center space-x-3">
           <img src="~/assets/images/wa.png" alt="WhatsApp" class="w-6 h-6" />
-          <span class="text-[#111827] font-semibold">Admin Konek Plus</span>
+          <span class="text-[#111827] font-semibold">Admin Konek Membership</span>
         </div>
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-500">
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />

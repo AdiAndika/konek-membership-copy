@@ -3,6 +3,7 @@
 // Kunci objek (Netflix, Spotify) digunakan untuk pencocokan
 export const accountsData = {
   'Netflix Premium': { // Kunci disamakan dengan nama produk dari API
+    displayFields: ['title','email', 'password', 'profileName', 'pin'],
     tutorial: [
         "Buka Netflix akses lewat aplikasi (HP/Laptop/Komputer) atau website netflix.com",
         "Login dan masukkan email & password akun yang sudah langganan.",
@@ -23,6 +24,7 @@ export const accountsData = {
     ],
   },
   'Spotify Premium': {
+    displayFields: ['title', 'link', 'alamat'],
     tutorial: [
         "Buka aplikasi Spotify di HP, desktop, atau akses web player di spotify.com.",
         "Login menggunakan email dan password akun yang sudah berlangganan Premium.",
@@ -43,6 +45,7 @@ export const accountsData = {
     ],
   },
   'VIU Premium': {
+    displayFields: ['title','email', 'password'],
     tutorial: [
         "Buka aplikasi atau website VIU.",
         "Login dengan email/nomor HP yang dipakai untuk berlangganan.",
@@ -63,6 +66,7 @@ export const accountsData = {
     ],
   },
   'WeTV Premium': {
+    displayFields: ['title','email', 'password'],
     tutorial: [
         "Buka aplikasi atau website WeTV.",
         "Login dengan akun yang sudah berlangganan (email, HP, atau akun sosial media).",

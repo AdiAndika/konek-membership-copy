@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
+import { ADMIN_WHATSAPP_NUMBER } from '~/utils/constants.js';
 
 const props = defineProps({
   account: {
@@ -11,6 +12,11 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 
 const copyStatus = ref({});
+
+// Helper untuk mengecek apakah sebuah field harus ditampilkan
+const shouldDisplay = (field) => {
+  return props.account.displayFields?.includes(field) && props.account[field];
+};
 
 const copyToClipboard = async (text, field) => {
   if (!text) return;
@@ -54,42 +60,46 @@ const copyToClipboard = async (text, field) => {
       
       <div v-if="!account.owned" class="text-center py-8">
         <h3 class="text-xl font-bold mb-4">Akun Sedang Disiapkan</h3>
-        <p class="text-gray-600 mb-6">
+        <p class="text-gray-600">
           Harap tunggu, akun <span class="font-semibold">{{ account.product }}</span> Anda sedang dalam proses penyiapan. Jika akun belum siap dalam 30 menit, Anda dapat mengajukan pengembalian dana dengan menghubungi admin.
         </p>
-        </div>
+      </div>
 
       <div v-else class="mx-auto space-y-8">
         <div class="space-y-3">
           <h3 class="text-lg font-semibold text-gray-900">Info Akun</h3>
           <div class="border rounded-lg p-4 space-y-3 text-sm md:text-base">
             <div class="flex justify-between items-center gap-4">
-              <span class="text-gray-600">Product</span>
+              <span class="text-gray-600">Produk</span>
               <span class="font-medium text-gray-900 text-right">{{ account.product || '-' }}</span>
             </div>
-            <div class="flex justify-between items-center gap-4">
+            
+            <div v-if="shouldDisplay('email')" class="flex justify-between items-center gap-4">
               <span class="text-gray-600">Email</span>
               <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-900 break-all">{{ account.email || '-' }}</span>
+                <span class="font-medium text-gray-900 break-all">{{ account.email }}</span>
                 <button @click="copyToClipboard(account.email, 'email')" class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50">
                   {{ copyStatus.email || 'Salin' }}
                 </button>
               </div>
             </div>
-            <div class="flex justify-between items-center gap-4">
+
+            <div v-if="shouldDisplay('password')" class="flex justify-between items-center gap-4">
               <span class="text-gray-600">Password</span>
               <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-900">{{ account.password || '-' }}</span>
+                <span class="font-medium text-gray-900">{{ account.password }}</span>
                 <button @click="copyToClipboard(account.password, 'password')" class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50">
                   {{ copyStatus.password || 'Salin' }}
                 </button>
               </div>
             </div>
-            <div v-if="account.profileName" class="flex justify-between items-center gap-4">
+
+            <div v-if="shouldDisplay('profileName')" class="flex justify-between items-center gap-4">
               <span class="text-gray-600">Nama Profile</span>
               <span class="font-medium text-gray-900">{{ account.profileName }}</span>
             </div>
-            <div v-if="account.pin" class="flex justify-between items-center gap-4">
+
+            <div v-if="shouldDisplay('pin')" class="flex justify-between items-center gap-4">
               <span class="text-gray-600">Kode PIN</span>
               <div class="flex items-center gap-2">
                 <span class="font-medium text-gray-900">{{ account.pin }}</span>
@@ -98,6 +108,22 @@ const copyToClipboard = async (text, field) => {
                 </button>
               </div>
             </div>
+            
+            <div v-if="shouldDisplay('link')" class="flex justify-between items-center gap-4">
+              <span class="text-gray-600">Link</span>
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-gray-900 break-all">{{ account.link }}</span>
+                <button @click="copyToClipboard(account.link, 'link')" class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50">
+                   {{ copyStatus.link || 'Salin' }}
+                </button>
+              </div>
+            </div>
+
+            <div v-if="shouldDisplay('alamat')" class="flex justify-between items-center gap-4">
+              <span class="text-gray-600">Alamat</span>
+              <span class="font-medium text-gray-900">{{ account.alamat }}</span>
+            </div>
+            
           </div>
         </div>
 

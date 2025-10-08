@@ -24,7 +24,6 @@ const auth = useAuth();
 const router = useRouter();
 const route = useRoute();
 
-// --- STATES ---
 const membershipStatus = ref('loading');
 const userFullName = ref(auth.value.user?.full_name || 'Pengguna');
 const membershipDetails = ref(null);
@@ -32,15 +31,11 @@ const invoices = ref([]);
 const membershipAccounts = ref([]);
 const isLoadingProducts = ref(true);
 const isLoadingInvoices = ref(true);
-
 const pendingPackageDetails = ref(null);
-
-// Hanya state untuk notifikasi yang masih digunakan
 const showPendingModal = ref(false);
 const showReminderPopup = ref(false);
 const showAccountWaitingModal = ref(false);
 
-// --- API CALLS & LIFECYCLE HOOKS ---
 onMounted(async () => {
   if (!auth.value.user || !auth.value.user.id) {
     return router.push('/auth/login');
@@ -68,13 +63,13 @@ onMounted(async () => {
         }
       }
       
+      // --- PERBAIKAN LOGIKA DI SINI ---
       const totalProductsInPackage = Object.keys(accountsData).length;
       const preparedAccounts = membershipAccounts.value.length;
-      if (preparedAccounts > 0 && preparedAccounts < totalProductsInPackage) {
+      // Hapus kondisi `preparedAccounts > 0`
+      if (preparedAccounts < totalProductsInPackage) {
         showAccountWaitingModal.value = true;
       }
-      
-      // Logika untuk notifikasi 'success' sudah dihilangkan dari sini
 
     } else if (status === 'pending') {
       membershipStatus.value = 'pending';
@@ -90,12 +85,9 @@ onMounted(async () => {
         (inv.status.toLowerCase() === 'pending' || inv.status.toLowerCase() === 'menunggu') && new Date(inv.due_date) > new Date()
       );
 
-      // Hanya menampilkan notifikasi jika ada invoice yang benar-benar pending
       if (pendingInvoice) {
         showPendingModal.value = true;
       }
-      // Logika untuk notifikasi 'expired' sudah dihilangkan dari sini
-
     } else {
       membershipStatus.value = 'non-active';
     }
@@ -121,26 +113,42 @@ const productListData = computed(() => {
 
   if (membershipStatus.value === 'active') {
     const allPossibleProducts = Object.keys(accountsData);
+    const normalizeName = (name) => name.replace(/\s/g, '').toLowerCase();
+
     return allPossibleProducts.map(staticProductName => {
-      const ownedAccount = membershipAccounts.value.find(
-        acc => staticProductName.startsWith(acc.account_product?.paket_addon?.name)
-      );
+      const normalizedStaticName = normalizeName(staticProductName);
+      
+      const ownedAccount = membershipAccounts.value.find(acc => {
+        const apiProductName = acc.account_product?.paket_addon?.name;
+        if (!apiProductName) return false;
+        return normalizedStaticName.includes(normalizeName(apiProductName));
+      });
+      
       const staticData = accountsData[staticProductName];
       const imageUrl = ownedAccount?.account_product?.paket_addon?.files?.[0]?.path_string;
+      
       return {
         title: staticProductName,
         image: imageUrl,
         isOwned: !!ownedAccount,
         apiData: ownedAccount ? {
-          owned: true, product: staticProductName,
+          owned: true, 
+          product: staticProductName,
           email: ownedAccount.account_product?.email,
           password: ownedAccount.account_product?.password,
           profileName: ownedAccount.profile_name,
           pin: ownedAccount.pin,
+          link: ownedAccount.link,
+          alamat: ownedAccount.alamat,
           tutorial: staticData?.tutorial,
           terms: staticData?.terms,
           consequences: staticData?.consequences,
-        } : { owned: false, product: staticProductName }
+          displayFields: staticData?.displayFields || ['email', 'password'],
+        } : { 
+          owned: false, 
+          product: staticProductName,
+          displayFields: staticData?.displayFields || [],
+        }
       };
     });
   }
