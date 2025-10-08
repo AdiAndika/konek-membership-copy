@@ -1,12 +1,5 @@
 // app/data/accounts.js
 
-export const accountImages = {
-  'Netflix Premium': '/images/netflix.png',
-  'Spotify Premium': '/images/spotify.png',
-  'VIU Premium': '/images/viu_full.png',
-  'WeTV Premium': '/images/wetv.png',
-};
-
 // Kunci objek (Netflix, Spotify) digunakan untuk pencocokan
 export const accountsData = {
   'Netflix Premium': { // Kunci disamakan dengan nama produk dari API

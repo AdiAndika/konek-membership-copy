@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue';
-import ExpiredInvoiceModal from '~/components/notifikasi/ExpiredInvoiceModal.vue';
 import { useState } from '#app';
 
 const props = defineProps({
@@ -105,11 +104,6 @@ const formatCurrency = (value) => {
         enter-from-class="opacity-0"
         leave-to-class="opacity-0"
       >
-        <ExpiredInvoiceModal
-          v-if="showExpiredModal"
-          @close="showExpiredModal = false"
-          @subscribe="handleSubscribeNow"
-        />
       </Transition>
     </Teleport>
 
