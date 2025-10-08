@@ -1,8 +1,11 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue';
+import { ADMIN_WHATSAPP_NUMBER } from '~/utils/constants.js';
+
 definePageMeta({
   layout: "default",
 });
+
 // Untuk mengelola status item FAQ yang aktif/terbuka
 const openFaq = ref(null);
 
@@ -38,6 +41,13 @@ const faqs = [
     answer: 'Tentu saja. Anda bisa membatalkan langganan kapan saja tanpa biaya tambahan. Akses Anda akan tetap aktif hingga akhir periode penagihan berjalan.'
   }
 ];
+
+// Membuat link WhatsApp dengan template pesan
+const whatsappLink = computed(() => {
+  const message = "Halo, saya tertarik dengan paket Konek Market.";
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodedMessage}`;
+});
 </script>
 
 <template>
@@ -59,76 +69,6 @@ const faqs = [
           </div>
         </div>
       </section>
-      
-      <!-- card promo belum jadi -->
-      <!-- <section class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-white to-blue-600">
-        
-        <div class="w-full max-w-sm font-sans">
-          
-          <div class="relative">
-            
-            <div class="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-white/20 rounded-b-xl"></div>
-
-            <div class="mt-3 relative bg-white/90 backdrop-blur-lg rounded-[2rem] shadow-2xl overflow-hidden">
-              
-              <div class="pt-8 pb-12 px-6 text-center">
-                <h3 class="text-3xl font-extrabold">
-                  <span class="bg-gradient-to-r from-orange-400 to-pink-500 bg-clip-text text-transparent">
-                    Konek Entertainment
-                  </span>
-                </h3>
-                <div class="flex justify-center items-baseline text-gray-800 mt-2">
-                  <span class="text-lg font-semibold">Rp.</span>
-                  <span class="text-6xl font-extrabold tracking-tight">99</span>
-                  <div class="flex flex-col items-start ml-1">
-                    <span class="text-lg font-semibold leading-none">.000</span>
-                    <span class="text-sm font-medium text-gray-500 leading-none">/bulan</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="relative">
-                <svg class="absolute top-0 w-full h-auto" viewBox="0 0 358 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M358 28C285.2 28 233.2 0 179 0C124.8 0 72.8 28 0 28H358Z" fill="white"/>
-                </svg>
-
-                <div class="relative pt-10 pb-8 px-8 bg-gradient-to-b from-blue-400 to-blue-500">
-                  <ul class="space-y-4 text-left">
-                    <li class="flex items-center">
-                      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Netflix_2015_logo.svg/1024px-Netflix_2015_logo.svg.png" class="w-7 h-7 mr-4" alt="Netflix">
-                      <span class="font-semibold text-gray-800 text-lg">Netflix Premium</span>
-                    </li>
-                    <li class="flex items-center">
-                      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/84/Spotify_icon.svg/1024px-Spotify_icon.svg.png" class="w-7 h-7 mr-4" alt="Spotify">
-                      <span class="font-semibold text-gray-800 text-lg">Spotify Premium</span>
-                    </li>
-                    <li class="flex items-center">
-                      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/04/ChatGPT_logo.svg/1024px-ChatGPT_logo.svg.png" class="w-7 h-7 mr-4" alt="ChatGPT">
-                      <span class="font-semibold text-gray-800 text-lg">Chat GPT Plus</span>
-                    </li>
-                    <li class="flex items-center">
-                      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/WeTV_logo.svg/1024px-WeTV_logo.svg.png" class="h-5 mr-4" alt="WeTV">
-                      <span class="font-semibold text-gray-800 text-lg">WeTV Premium</span>
-                    </li>
-                    <li class="flex items-center">
-                      <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Viu_logo.svg/1024px-Viu_logo.svg.png" class="h-5 mr-4" alt="Viu">
-                      <span class="font-semibold text-gray-800 text-lg">VIU Premium</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="mt-6">
-            <button class="w-full bg-white text-blue-600 font-bold py-4 px-6 rounded-full flex items-center justify-center space-x-3 shadow-lg hover:bg-gray-100 transition-transform transform hover:scale-105">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-              <span class="text-lg">Langganan Sekarang</span>
-            </button>
-          </div>
-
-        </div>
-      </section> -->
 
       <section class="pt-[10px] pb-[60px] bg-gradient-to-b from-white via-blue-50 to-blue-500">
         <div class="container mx-auto px-6 text-center">
@@ -137,13 +77,13 @@ const faqs = [
           <p class="text-3xl md:text-4xl font-bold text-gray-700 mt-1">Cuma Rp.99.000 per bulan</p>
           
           <div class="mt-10 max-w-sm mx-auto">
-            <a href="#" aria-label="Langganan Sekarang">
+            <NuxtLink to="/auth/login" aria-label="Langganan Sekarang">
               <img 
                 src="~/assets/images/card-promo.svg" 
                 alt="Kartu Promo Konek Entertainment"
                 class="w-full h-auto"
               >
-            </a>
+            </NuxtLink>
 
             <div class="mt-8">
               <NuxtLink to="/auth/login" class="w-full bg-white text-blue-500 font-bold py-4 px-6 rounded-full flex items-center justify-center space-x-3 shadow-lg hover:bg-gray-100 transition-colors transform hover:scale-105">
@@ -199,7 +139,7 @@ const faqs = [
 
     <div class="fixed bottom-6 right-6 z-40">
       <a 
-        href="https://wa.me/6281234567890?text=Halo,%20saya%20tertarik%20dengan%20paket%20Konek%20Market." 
+        :href="whatsappLink" 
         target="_blank" 
         rel="noopener noreferrer"
         aria-label="Tanya Kami di WhatsApp"

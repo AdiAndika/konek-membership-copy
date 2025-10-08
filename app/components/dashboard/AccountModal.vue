@@ -1,6 +1,5 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { ADMIN_WHATSAPP_NUMBER } from '~/utils/constants.js';
 
 const props = defineProps({
   account: {
@@ -29,23 +28,6 @@ const copyToClipboard = async (text, field) => {
     copyStatus.value[field] = 'Gagal';
   }
 };
-
-// Membuat link WhatsApp dengan template pesan refund
-const refundLink = computed(() => {
-  const template = `Halo Admin,
-
-Saya ingin mengajukan permohonan pengembalian dana (refund) untuk produk berikut:
-
-Nama: [Isi Nama Lengkap Anda]
-Email: [Isi Email Anda]
-Paket: Konek Membership
-
-Mohon bantuannya. Terima kasih.`;
-  
-  const encodedMessage = encodeURIComponent(template);
-  return `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodedMessage}`;
-});
-
 </script>
 
 <template>
@@ -73,17 +55,9 @@ Mohon bantuannya. Terima kasih.`;
       <div v-if="!account.owned" class="text-center py-8">
         <h3 class="text-xl font-bold mb-4">Akun Sedang Disiapkan</h3>
         <p class="text-gray-600 mb-6">
-          Harap tunggu, akun <span class="font-semibold">{{ account.product }}</span> Anda sedang dalam proses penyiapan. Jika akun belum siap dalam 30 menit, Anda dapat mengajukan pengembalian dana.
+          Harap tunggu, akun <span class="font-semibold">{{ account.product }}</span> Anda sedang dalam proses penyiapan. Jika akun belum siap dalam 30 menit, Anda dapat mengajukan pengembalian dana dengan menghubungi admin.
         </p>
-        <a 
-          :href="refundLink"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="inline-block bg-green-500 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-600 transition-colors"
-        >
-          Hubungi Admin untuk Refund
-        </a>
-      </div>
+        </div>
 
       <div v-else class="mx-auto space-y-8">
         <div class="space-y-3">

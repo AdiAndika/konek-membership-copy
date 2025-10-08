@@ -1,3 +1,9 @@
+<script setup>
+import { ADMIN_WHATSAPP_NUMBER } from '~/utils/constants.js';
+
+const whatsappLink = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}`;
+</script>
+
 <template>
   <section>
     <div class="bg-white rounded-xl shadow-sm p-6 h-full">
@@ -21,7 +27,12 @@
           <p class="text-red-500 font-semibold">Libur</p>
         </div>
       </div>
-      <a href="#" class="flex items-center justify-between border rounded-xl px-4 py-3 shadow-sm bg-gray-50 hover:bg-gray-100 transition-colors">
+      <a 
+        :href="whatsappLink" 
+        target="_blank" 
+        rel="noopener noreferrer" 
+        class="flex items-center justify-between border rounded-xl px-4 py-3 shadow-sm bg-gray-50 hover:bg-gray-100 transition-colors"
+      >
         <div class="flex items-center space-x-3">
           <img src="~/assets/images/wa.png" alt="WhatsApp" class="w-6 h-6" />
           <span class="text-[#111827] font-semibold">Admin Konek Plus</span>
