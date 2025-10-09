@@ -1,5 +1,5 @@
 <script setup>
-const emit = defineEmits(['close']);
+const emit = defineEmits(["close"]);
 </script>
 
 <template>
@@ -34,20 +34,11 @@ const emit = defineEmits(['close']);
       <div
         class="flex-shrink-0 bg-yellow-100 rounded-full h-16 w-16 flex items-center justify-center"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-9 w-9 text-yellow-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
-          />
-        </svg>
+        <img
+          src="~/assets/images/bell-icon.svg"
+          alt="Notifikasi Berhasil"
+          class="w-10 h-10"
+        />
       </div>
 
       <div class="text-left">
@@ -55,8 +46,9 @@ const emit = defineEmits(['close']);
           Yey, pembayaran untuk paket
           <b class="text-blue-500">Konek Entertainment</b> berhasil! Akun
           Digitalmu Sedang disiapkan. Login kembali saat akun kamu sudah siap.
-          Jangan khawatir, jika selama <b class="text-blue-500">30 Menit</b> akun kamu belum
-          siap, kamu bisa melakukan refund melalui Kontak WA Admin kami.
+          Jangan khawatir, jika selama
+          <b class="text-blue-500">30 Menit</b> akun kamu belum siap, kamu bisa
+          melakukan refund melalui Kontak WA Admin kami.
         </p>
       </div>
     </div>

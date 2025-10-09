@@ -1,29 +1,24 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { ADMIN_WHATSAPP_NUMBER } from '~/utils/constants';
+import { ref } from "vue";
+import { ADMIN_WHATSAPP_NUMBER } from "~/utils/constants";
 
 definePageMeta({
   layout: "blanknav",
 });
 
-const phoneNumber = ref('');
 const isLoading = ref(false);
-const isPhoneValid = computed(() => phoneNumber.value.length > 8);
 
+// Fungsi disederhanakan: tidak lagi memerlukan validasi nomor telepon
 const registerViaWhatsApp = () => {
-  if (!isPhoneValid.value || isLoading.value) return;
+  // Mencegah klik ganda saat sedang loading
+  if (isLoading.value) return;
 
   isLoading.value = true;
+  const message = encodeURIComponent(`Membership Register\nUsername:\nEmail:`);
 
-  // Format pesan sesuai dengan permintaan baru
-  const message = encodeURIComponent(
-    `Membership Register\nUsername: Test User\nEmail: testuser25@gmail.com`
-  );
-  
   const whatsappUrl = `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${message}`;
-
   setTimeout(() => {
-    window.open(whatsappUrl, '_blank');
+    window.open(whatsappUrl, "_blank");
     isLoading.value = false;
   }, 500);
 };
@@ -80,49 +75,46 @@ const registerViaWhatsApp = () => {
             >
               Selamat Datang Para Pencari Hiburan Digital
             </h1>
+            <!-- Teks deskripsi diubah -->
             <p class="mt-2 text-sm sm:text-base text-gray-600">
-              Masukkan nomor WhatsApp Anda untuk memulai pendaftaran.
+              Klik tombol di bawah ini untuk memulai pendaftaran melalui
+              WhatsApp.
             </p>
           </div>
 
-          <h2 class="text-xl sm:text-2xl font-bold mb-[1.618rem]">
-            Daftar Akun
-          </h2>
-
-          <div class="relative">
-            <div
-              class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"
-            >
-              <svg class="w-6 h-5" viewBox="0 0 21 15">
-                <g fill="none">
-                  <path fill="#FFF" d="M0 0h21v15H0z" />
-                  <path fill="#D52B1E" d="M0 0h21v8H0z" />
-                </g>
-              </svg>
-              <span class="ml-2 text-gray-700 font-semibold">+62</span>
-            </div>
-            <input
-              v-model="phoneNumber"
-              type="tel"
-              id="phone-input"
-              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-200 focus:border-blue-500 block w-full pl-24 p-3.5"
-              placeholder="Masukan no hp kamu"
-            />
-          </div>
+          <!-- Input nomor telepon dihapus -->
 
           <button
             @click="registerViaWhatsApp"
-            :disabled="!isPhoneValid || isLoading"
+            :disabled="isLoading"
             type="button"
-            class="mt-[1.618rem] w-full text-white font-medium rounded-lg text-base px-5 py-3 text-center transition-colors
-                   bg-blue-600 hover:bg-blue-700
-                   disabled:bg-gray-400 disabled:cursor-not-allowed flex justify-center items-center"
+            class="w-full text-white font-medium rounded-lg text-base px-5 py-3 text-center transition-colors bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-wait flex justify-center items-center"
           >
-            <svg v-if="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <svg
+              v-if="isLoading"
+              class="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
             </svg>
-            {{ isLoading ? 'Mengarahkan...' : 'Daftar via WhatsApp' }}
+            <!-- PERUBAHAN DI SINI: Logo WA dihapus -->
+            <span>{{
+              isLoading ? "Mengarahkan..." : "Daftar via WhatsApp"
+            }}</span>
           </button>
 
           <p class="mt-[2.618rem] text-sm text-gray-600">

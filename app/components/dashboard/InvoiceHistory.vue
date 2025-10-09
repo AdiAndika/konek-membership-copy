@@ -10,50 +10,26 @@ const props = defineProps({
   isLoading: Boolean,
 });
 
-// PERUBAHAN 1: Hapus `useCheckoutState` dan gunakan `useRouter` saja
 const router = useRouter();
 
-// State untuk kontrol modal tetap ada
-const showExpiredModal = ref(false);
-
+// PERBAIKAN 1: Logika disederhanakan.
+// Fungsi ini sekarang hanya bertugas mengarahkan ke halaman detail
+// dengan membawa ID dan nomor invoice.
 const handleDetailClick = (invoice) => {
-  const status = invoice.status ? invoice.status.toLowerCase() : "";
-  const isExpired = new Date(invoice.due_date) < new Date();
-
-  // PERUBAHAN 2: Sesuaikan logika routing
-  if ((status === "pending" || status === "menunggu") && !isExpired) {
-    // Jika PENDING dan belum kedaluwarsa, arahkan ke halaman daftar invoice
-    // di mana pengguna bisa melanjutkan pembayaran.
-    router.push("/payment/invoices");
-  } else if (
-    (status === "pending" || status === "menunggu" || status === "expired") &&
-    isExpired
-  ) {
-    // Jika KEDALUWARSA, tampilkan modal untuk membuat langganan baru.
-    showExpiredModal.value = true;
-  } else {
-    // Jika LUNAS atau status lain, arahkan ke halaman detail invoice (jika ada)
-    // atau ke daftar invoice utama.
-    router.push("/payment/invoices");
+  if (invoice && invoice.invoice_id && invoice.invoice_no) {
+    router.push(
+      `/payment/invoices?invoice_id=${invoice.invoice_id}&invoice_no=${invoice.invoice_no}`
+    );
   }
 };
 
-const handleSubscribeNow = () => {
-  showExpiredModal.value = false; // Tutup modal
-  // PERUBAHAN 3: Arahkan langsung ke halaman checkout untuk membuat pesanan baru
-  router.push("/payment/checkout");
-};
-
+// Fungsi helper untuk status dan format tetap sama.
 const getStatusInfo = (invoice) => {
   const status = invoice.status ? invoice.status.toLowerCase() : "";
-  // Cek status dari payment object juga untuk status 'expired' yang lebih akurat
-  const paymentStatus = invoice.payment?.status?.toLowerCase();
-  const isDueDatePassed = new Date(invoice.due_date) < new Date();
-
   if (status === "paid" || status === "berhasil") {
     return { text: "Lunas", class: "text-green-600" };
   }
-  if (paymentStatus === "expired" || isDueDatePassed) {
+  if (status === "expired") {
     return { text: "Kadaluwarsa", class: "text-red-500" };
   }
   if (status === "pending" || status === "menunggu") {
@@ -87,11 +63,15 @@ const formatDate = (dateString) => {
       <h1 class="text-2xl md:text-3xl font-semibold text-gray-900">
         Histori Pembelian
       </h1>
+      <!-- PERBAIKAN 2: Link "Lihat Semua" ini sebenarnya tidak lagi relevan
+           karena halaman `invoices.vue` kini adalah halaman detail.
+           Namun, kita biarkan saja untuk saat ini jika Anda ingin membuat halaman
+           daftar lengkap di masa depan. -->
       <NuxtLink
         to="/payment/invoices"
         class="text-sm font-semibold text-blue-600 hover:underline"
       >
-        Lihat Semua
+        Lihat Detail
       </NuxtLink>
     </div>
 
@@ -156,15 +136,7 @@ const formatDate = (dateString) => {
       </div>
     </div>
 
-    <!-- Modal untuk Invoice Kedaluwarsa -->
-    <Teleport to="body">
-      <Transition
-        enter-active-class="transition-opacity duration-200 ease-out"
-        leave-active-class="transition-opacity duration-200 ease-in"
-        enter-from-class="opacity-0"
-        leave-to-class="opacity-0"
-      >
-      </Transition>
-    </Teleport>
+    <!-- PERBAIKAN 3: Modal sudah dihapus dari komponen ini -->
+    <!-- Logika modal sekarang ada di halaman detail invoice jika diperlukan -->
   </section>
 </template>

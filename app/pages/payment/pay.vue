@@ -1,79 +1,131 @@
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted, computed } from "vue";
+import { usePaymentState } from "~/composables/usePaymentState";
 import { useRouter } from "vue-router";
 
-// Buat state baru yang spesifik untuk halaman ini
-// untuk menyimpan checkout link sementara.
-const checkoutLink = useState("checkoutLink", () => null);
+definePageMeta({
+  layout: "blanknav",
+});
+
+const paymentState = usePaymentState();
 const router = useRouter();
 
-// Jika halaman ini diakses tanpa ada checkout link (misal, akses langsung dari URL),
-// kembalikan pengguna ke halaman checkout awal.
-if (!checkoutLink.value) {
-  console.warn("Checkout link tidak ditemukan, mengarahkan kembali.");
-  router.replace("/payment/checkout");
-}
-
-const goToPayment = () => {
-  if (checkoutLink.value) {
-    window.location.href = checkoutLink.value;
-  } else {
-    alert("Link pembayaran tidak valid. Silakan coba lagi.");
-    router.push("/payment/checkout");
+onMounted(() => {
+  if (!paymentState.value?.link) {
+    router.replace("/payment/checkout");
   }
-};
-
-// Hapus link dari state setelah komponen dihancurkan
-// agar tidak bisa diakses kembali dengan tombol 'back' di browser.
-onUnmounted(() => {
-  checkoutLink.value = null;
 });
+
+const now = ref(new Date());
+let timerInterval: any = null;
+
+const timeLeft = computed(() => {
+  if (!paymentState.value?.expiry) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  }
+  const expiryDate = new Date(paymentState.value.expiry);
+  const diff = expiryDate.getTime() - now.value.getTime();
+
+  if (diff <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  }
+
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / 1000 / 60) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+  };
+});
+
+onMounted(() => {
+  timerInterval = setInterval(() => {
+    now.value = new Date();
+  }, 1000);
+});
+
+onUnmounted(() => {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+  }
+});
+
+const padZero = (num: number) => num.toString().padStart(2, "0");
 </script>
 
 <template>
   <div
-    class="bg-slate-50 min-h-screen flex items-center justify-center font-sans p-4"
+    class="bg-slate-50 flex items-center justify-center min-h-screen font-sans p-4"
   >
     <div
-      class="max-w-sm w-full bg-white rounded-xl shadow-lg border p-8 text-center"
+      v-if="paymentState?.link"
+      class="w-full max-w-md text-center bg-white p-8 rounded-2xl shadow-xl border"
     >
-      <div class="mb-6">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke-width="1.5"
-          stroke="currentColor"
-          class="w-16 h-16 mx-auto text-blue-500"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15A2.25 2.25 0 0 0 2.25 6.75v10.5A2.25 2.25 0 0 0 4.5 19.5Z"
-          />
-        </svg>
-      </div>
-      <h1 class="text-2xl font-bold text-slate-800">
+      <h1 class="text-3xl font-bold text-slate-800">
         Selesaikan Pembayaran Anda
       </h1>
-      <p class="text-slate-500 mt-2">
-        Anda akan diarahkan ke halaman pembayaran yang aman untuk menyelesaikan
-        transaksi.
+      <p class="mt-3 text-slate-600">
+        Anda akan diarahkan ke halaman pembayaran. Mohon selesaikan transaksi
+        sebelum waktu habis.
       </p>
 
-      <div class="mt-8">
-        <button
-          @click="goToPayment"
-          class="w-full bg-blue-600 text-white font-bold py-3 px-10 rounded-xl shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-300"
-        >
-          Bayar Sekarang
-        </button>
-        <NuxtLink
-          to="/payment/checkout"
-          class="mt-4 inline-block text-sm text-slate-500 hover:text-slate-700"
-        >
-          Kembali
-        </NuxtLink>
+      <div class="my-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+        <p class="text-sm font-semibold text-blue-700">
+          Batas Waktu Pembayaran:
+        </p>
+        <div class="flex justify-center items-center gap-2 mt-2">
+          <div v-if="timeLeft.days > 0" class="text-center">
+            <div class="text-4xl font-bold text-slate-800">
+              {{ padZero(timeLeft.days) }}
+            </div>
+            <div class="text-xs text-slate-500">Hari</div>
+          </div>
+          <div
+            v-if="timeLeft.days > 0"
+            class="text-4xl font-light text-slate-300"
+          >
+            :
+          </div>
+          <div class="text-center">
+            <div class="text-4xl font-bold text-slate-800">
+              {{ padZero(timeLeft.hours) }}
+            </div>
+            <div class="text-xs text-slate-500">Jam</div>
+          </div>
+          <div class="text-4xl font-light text-slate-300">:</div>
+          <div class="text-center">
+            <div class="text-4xl font-bold text-slate-800">
+              {{ padZero(timeLeft.minutes) }}
+            </div>
+            <div class="text-xs text-slate-500">Menit</div>
+          </div>
+          <div class="text-4xl font-light text-slate-300">:</div>
+          <div class="text-center">
+            <div class="text-4xl font-bold text-slate-800">
+              {{ padZero(timeLeft.seconds) }}
+            </div>
+            <div class="text-xs text-slate-500">Detik</div>
+          </div>
+        </div>
       </div>
+
+      <a
+        :href="paymentState.link"
+        class="w-full inline-block bg-blue-600 text-white font-bold py-4 px-10 rounded-xl shadow-lg hover:bg-blue-700"
+      >
+        Bayar Sekarang
+      </a>
+
+      <!-- PERUBAHAN DI SINI: Tombol kembali ditambahkan -->
+      <NuxtLink
+        to="/payment/checkout"
+        class="mt-4 inline-block text-sm text-slate-500 hover:text-slate-700"
+      >
+        Kembali ke Detail Paket
+      </NuxtLink>
+    </div>
+    <div v-else>
+      <p>Mengarahkan kembali...</p>
     </div>
   </div>
 </template>

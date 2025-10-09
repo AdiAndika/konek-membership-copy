@@ -1,11 +1,8 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { ADMIN_WHATSAPP_NUMBER } from '~/utils/constants.js';
-
+import { ref } from 'vue'
 definePageMeta({
   layout: "default",
 });
-
 // Untuk mengelola status item FAQ yang aktif/terbuka
 const openFaq = ref(null);
 
@@ -14,7 +11,7 @@ const toggleFaq = (index) => {
   if (openFaq.value === index) {
     openFaq.value = null; // Tutup jika item yang sama diklik lagi
   } else {
-    openFaq.value = index; // Buka item yang baru
+    openFaq.value = index; // Buka item yang baru 
   }
 };
 
@@ -41,13 +38,6 @@ const faqs = [
     answer: 'Tentu saja. Anda bisa membatalkan langganan kapan saja tanpa biaya tambahan. Akses Anda akan tetap aktif hingga akhir periode penagihan berjalan.'
   }
 ];
-
-// Membuat link WhatsApp dengan template pesan
-const whatsappLink = computed(() => {
-  const message = "Halo, saya tertarik dengan paket Konek Market.";
-  const encodedMessage = encodeURIComponent(message);
-  return `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodedMessage}`;
-});
 </script>
 
 <template>
@@ -77,13 +67,13 @@ const whatsappLink = computed(() => {
           <p class="text-3xl md:text-4xl font-bold text-gray-700 mt-1">Cuma Rp.99.000 per bulan</p>
           
           <div class="mt-10 max-w-sm mx-auto">
-            <NuxtLink to="/auth/login" aria-label="Langganan Sekarang">
+            <a href="#" aria-label="Langganan Sekarang">
               <img 
                 src="~/assets/images/card-promo.svg" 
                 alt="Kartu Promo Konek Entertainment"
                 class="w-full h-auto"
               >
-            </NuxtLink>
+            </a>
 
             <div class="mt-8">
               <NuxtLink to="/auth/login" class="w-full bg-white text-blue-500 font-bold py-4 px-6 rounded-full flex items-center justify-center space-x-3 shadow-lg hover:bg-gray-100 transition-colors transform hover:scale-105">
@@ -139,7 +129,7 @@ const whatsappLink = computed(() => {
 
     <div class="fixed bottom-6 right-6 z-40">
       <a 
-        :href="whatsappLink" 
+        href="https://wa.me/6281234567890?text=Halo,%20saya%20tertarik%20dengan%20paket%20Konek%20Market." 
         target="_blank" 
         rel="noopener noreferrer"
         aria-label="Tanya Kami di WhatsApp"

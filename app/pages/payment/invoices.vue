@@ -1,78 +1,111 @@
-<script setup>
-import { ref, onMounted, computed } from "vue";
-import { api } from "~/services/api";
+<script setup lang="ts">
+import { ref, onMounted } from "vue";
+import { api } from "~/services/api.js";
 import { useAuth } from "~/composables/useState";
+import { usePaymentState } from "~/composables/usePaymentState";
 import { useRouter, useRoute } from "vue-router";
-import LoadingSpinner from '~/components/LoadingSpinner.vue'; // Impor spinner
 
 definePageMeta({
-  layout: "default",
+  layout: "blanknav",
 });
 
-const auth = useAuth();
+// Explicitly type user as any or a proper interface if available
+interface User {
+  id: string;
+  // tambahkan properti lain jika diperlukan
+}
+const auth = useAuth() as { value: { user: User | undefined | null } };
 const router = useRouter();
-const route = useRoute(); // Gunakan useRoute untuk mengakses query
+const route = useRoute(); // Mengambil parameter dari URL
+const paymentState = usePaymentState();
 
-// --- STATE ---
-const invoices = ref([]);
+// State
+const invoiceDetail = ref<any>(null); // Mengganti nama dari latestInvoice
 const isLoading = ref(true);
-const errorMessage = ref(null);
-const selectedInvoice = ref(null);
-const copyStatus = ref('Salin ID');
+const errorMessage = ref<string | null>(null);
+const isRegenerating = ref(false);
 
-// --- LIFECYCLE HOOK ---
+// Mengambil data detail invoice berdasarkan parameter di URL
 onMounted(async () => {
-  if (!auth.value.user?.id) {
+  const { invoice_id, invoice_no } = route.query;
+
+  if (!invoice_id || !invoice_no) {
+    errorMessage.value = "ID atau Nomor Invoice tidak valid.";
+    isLoading.value = false;
+    return;
+  }
+
+  if (!auth.value.user || !auth.value.user.id) {
     return router.push("/auth/login");
   }
-  await fetchInvoices();
 
-  // Cek jika ada ID di query parameter untuk langsung menampilkan detail
-  const invoiceIdFromQuery = route.query.id;
-  if (invoiceIdFromQuery) {
-    const foundInvoice = invoices.value.find(inv => inv.invoice_id == invoiceIdFromQuery);
-    if (foundInvoice) {
-      selectedInvoice.value = foundInvoice;
-    }
-  }
-});
-
-// --- METHODS ---
-const fetchInvoices = async () => {
   try {
     isLoading.value = true;
-    const response = await api.getInvoiceList(auth.value.user.id, 10, "latest");
+    // Memanggil API baru
+    const response = await api.getInvoiceDetailByNo(
+      invoice_id as string,
+      invoice_no as string
+    );
     if (response.data) {
-      invoices.value = response.data;
+      invoiceDetail.value = response.data;
+    } else {
+      errorMessage.value = "Invoice tidak ditemukan.";
     }
-  } catch (error) {
-    console.error("Gagal mengambil daftar invoice:", error);
-    errorMessage.value = "Gagal memuat data invoice. Silakan coba lagi.";
+  } catch (error: any) {
+    errorMessage.value = error.message || "Gagal memuat data.";
   } finally {
     isLoading.value = false;
   }
+});
+
+async function handlePaymentAction() {
+  if (!invoiceDetail.value) return;
+
+  const status = invoiceDetail.value.status.toLowerCase();
+
+  if (status === "pending") {
+    if (invoiceDetail.value.payment?.checkout_link) {
+      window.location.href = invoiceDetail.value.payment.checkout_link;
+    } else {
+      errorMessage.value = "Link pembayaran tidak ditemukan.";
+    }
+  } else if (status === "expired") {
+    isRegenerating.value = true;
+    errorMessage.value = null;
+    try {
+      const regenerateResponse = await api.regenerateInvoice({
+        user_id: auth.value.user?.id,
+      });
+      const newPayment = regenerateResponse.data?.payment;
+      if (newPayment?.checkout_link) {
+        paymentState.value = {
+          link: newPayment.checkout_link,
+          expiry: newPayment.expiry_date,
+        };
+        router.push("/payment/pay");
+      } else {
+        throw new Error("Gagal mendapatkan link pembayaran baru.");
+      }
+    } catch (error: any) {
+      errorMessage.value =
+        error.message || "Gagal memperbarui link pembayaran.";
+    } finally {
+      isRegenerating.value = false;
+    }
+  }
+}
+
+const downloadInvoice = () => {
+  window.print();
 };
 
-const showDetail = (invoice) => {
-  selectedInvoice.value = invoice;
-};
-
-const goBackToList = () => {
-  selectedInvoice.value = null;
-  // Hapus query param dari URL saat kembali ke daftar
-  router.replace({ query: {} });
-};
-
-const formatCurrency = (price) => {
-  if (price === null || price === undefined) return "Rp 0";
-  return new Intl.NumberFormat("id-ID", {
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
-  }).format(price);
-};
-
-const formatDate = (dateString) => {
+  }).format(value);
+const formatDate = (dateString: string) => {
   if (!dateString) return "-";
   return new Date(dateString).toLocaleDateString("id-ID", {
     day: "numeric",
@@ -80,207 +113,247 @@ const formatDate = (dateString) => {
     year: "numeric",
   });
 };
-
-const getStatusBadgeClass = (status) => {
-  if (!status) return "bg-slate-100 text-slate-600";
+const getStatusInfo = (status: string) => {
+  if (!status)
+    return { text: "Tidak Diketahui", class: "bg-slate-200 text-slate-700" };
   const s = status.toLowerCase();
-  if (s === "paid" || s === "berhasil") return "bg-emerald-100 text-emerald-700";
-  if (s === "pending" || s === 'menunggu') return "bg-amber-100 text-amber-700";
-  return "bg-rose-100 text-rose-700";
-};
-
-// --- COMPUTED PROPERTIES FOR DETAIL VIEW ---
-const statusInfo = computed(() => {
-  if (!selectedInvoice.value) return {};
-  const status = selectedInvoice.value.status?.toLowerCase();
-  if (status === 'paid' || status === 'berhasil') {
-    return { text: 'Berhasil', class: 'bg-green-100 text-green-800' };
-  }
-  if (status === 'pending' || status === 'menunggu') {
-    return { text: 'Pending', class: 'bg-yellow-100 text-yellow-800' };
-  }
-  return { text: selectedInvoice.value.status || 'Gagal', class: 'bg-red-100 text-red-700' };
-});
-
-// --- METHODS FOR DETAIL VIEW ---
-const copyInvoiceId = () => {
-  if (!selectedInvoice.value) return;
-  navigator.clipboard.writeText(selectedInvoice.value.invoice_no).then(() => {
-    copyStatus.value = 'Tersalin!';
-    setTimeout(() => {
-      copyStatus.value = 'Salin ID';
-    }, 2000);
-  }).catch(err => {
-    console.error('Gagal menyalin:', err);
-    copyStatus.value = 'Gagal';
-  });
-};
-
-const downloadInvoice = () => {
-  alert('Fitur unduh belum diimplementasikan.');
+  if (s === "paid" || s === "berhasil")
+    return { text: "Berhasil", class: "bg-green-100 text-green-700" };
+  if (s === "pending")
+    return { text: "Pending", class: "bg-amber-100 text-amber-700" };
+  if (s === "expired")
+    return { text: "Kedaluwarsa", class: "bg-rose-100 text-rose-700" };
+  return { text: "Gagal", class: "bg-rose-100 text-rose-700" };
 };
 </script>
 
 <template>
-  <div class="bg-slate-50 font-sans min-h-screen">
-    
-    <div v-if="selectedInvoice" class="container mx-auto max-w-lg p-4">
-      <header class="flex items-center mb-6">
-        <button @click="goBackToList" class="text-blue-500 font-semibold flex items-center">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+  <div class="bg-slate-50 min-h-screen font-sans">
+    <div
+      class="max-w-md mx-auto bg-white min-h-screen flex flex-col"
+      id="invoice-content"
+    >
+      <header class="p-4 flex-shrink-0 print-hidden">
+        <button
+          @click="router.back()"
+          class="flex items-center gap-2 text-slate-700 font-semibold"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            class="w-5 h-5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M15.75 19.5L8.25 12l7.5-7.5"
+            />
           </svg>
           Kembali
         </button>
       </header>
 
-      <main class="text-center">
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">Detail Pemesanan</h1>
-        
-        <img src="~/assets/images/invoice.svg" alt="Invoice Icon" class="w-20 h-20 mx-auto mb-4"/>
-
-        <p class="text-4xl font-bold text-gray-900">{{ formatCurrency(selectedInvoice.amount) }}</p>
-        <p class="text-gray-500 mt-1">{{ selectedInvoice.invoice_no }}</p>
-
-        <div class="border-t border-b border-gray-200 my-6 py-4 px-2 space-y-3">
-          <div class="flex justify-between items-center">
-            <span class="text-gray-600">Status</span>
-            <span class="text-sm font-semibold px-3 py-1 rounded-full" :class="statusInfo.class">
-              {{ statusInfo.text }}
-            </span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-gray-600">Tanggal Transaksi</span>
-            <span class="font-semibold text-gray-800">{{ formatDate(selectedInvoice.created_at) }}</span>
-          </div>
+      <main class="flex-grow p-6 text-center">
+        <div v-if="isLoading" class="py-10 text-slate-500">
+          <p>Memuat detail pemesanan...</p>
         </div>
-
-        <div class="bg-white rounded-xl shadow-md p-6 text-left">
-          <div class="flex justify-between items-start mb-6">
-            <h2 class="text-xl font-bold text-gray-900">{{ selectedInvoice.pelanggan_membership?.product_membership?.name || 'Paket Membership' }}</h2>
-            <button @click="copyInvoiceId" class="text-blue-500 hover:text-blue-700 p-1 rounded-full hover:bg-blue-50" :title="copyStatus">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </button>
-          </div>
-
-          <div class="space-y-3 text-sm">
-            <div class="flex justify-between">
-              <span class="text-gray-500">No. Invoice</span>
-              <span class="font-medium text-gray-800">{{ selectedInvoice.invoice_no }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-500">Metode Bayar</span>
-              <span class="font-medium text-gray-800 capitalize">{{ selectedInvoice.payment?.payment_method || 'Belum Dipilih' }}</span>
-            </div>
-          </div>
-
-          <hr class="my-4 border-gray-200" />
-
-          <div class="flex justify-between items-center">
-            <span class="text-base font-bold text-blue-600">Total</span>
-            <span class="text-base font-bold text-blue-600">{{ formatCurrency(selectedInvoice.amount) }}</span>
-          </div>
-        </div>
-
-        <div class="mt-8">
-          <button @click="downloadInvoice" class="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center space-x-2 hover:bg-blue-600 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            <span>Unduh</span>
-          </button>
-        </div>
-      </main>
-    </div>
-
-    <div v-else class="container mx-auto px-4 lg:px-8 py-16">
-      <div class="max-w-3xl mx-auto text-center mb-12">
-        <h1 class="text-4xl md:text-5xl font-bold text-slate-800 tracking-tight">
-          Riwayat Pembelian
-        </h1>
-        <p class="mt-4 text-lg text-slate-600">
-          Kelola dan lihat semua transaksi membership Anda di satu tempat.
-        </p>
-      </div>
-
-      <div class="max-w-3xl mx-auto">
-        <div v-if="isLoading" class="text-center text-slate-500 py-10">
-          <LoadingSpinner />
-        </div>
-        <div v-else-if="errorMessage" class="bg-rose-100 border-l-4 border-rose-500 text-rose-700 p-4 rounded-md shadow-sm">
-          <p class="font-semibold">Oops, terjadi kesalahan</p>
+        <div
+          v-else-if="errorMessage && !invoiceDetail"
+          class="py-10 text-rose-500"
+        >
           <p>{{ errorMessage }}</p>
         </div>
-        <div v-else-if="invoices.length === 0" class="text-center bg-white p-12 rounded-xl shadow-sm border">
-          <img src="~/assets/images/icon-langganan.svg" alt="Tidak ada transaksi" class="w-40 h-40 mx-auto mb-6 opacity-70" />
-          <h2 class="text-2xl font-semibold text-slate-700">Belum Ada Transaksi</h2>
-          <p class="text-slate-500 mt-2">
-            Anda akan melihat riwayat pembelian setelah melakukan transaksi pertama.
+
+        <div v-else-if="invoiceDetail">
+          <h1 class="text-2xl font-bold text-slate-800">Detail Pemesanan</h1>
+
+          <img
+            src="~/assets/images/iconinvoice.svg"
+            alt="Ikon Invoice"
+            class="w-32 h-32 mx-auto my-6"
+          />
+
+          <p class="text-4xl font-bold text-blue-600">
+            {{ formatCurrency(invoiceDetail.amount) }}
           </p>
-        </div>
+          <p class="text-slate-500 font-mono mt-1">
+            {{ invoiceDetail.invoice_no }}
+          </p>
 
-        <div v-else class="space-y-5">
-          <div
-            v-for="invoice in invoices"
-            :key="invoice.invoice_id"
-            @click="showDetail(invoice)"
-            class="bg-white rounded-xl border border-slate-200 p-5 transition-all duration-300 hover:shadow-lg hover:border-blue-500 hover:-translate-y-1 cursor-pointer"
-          >
-            <div class="flex flex-col sm:flex-row justify-between gap-5">
-              <div class="flex items-center gap-4">
-                <div class="hidden sm:flex bg-blue-50 text-blue-600 rounded-full h-12 w-12 items-center justify-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-                  </svg>
-                </div>
-                <div>
-                  <p class="font-semibold text-slate-800 text-lg">
-                    {{ invoice.pelanggan_membership?.product_membership?.name || "Paket Membership" }}
-                  </p>
-                  <div class="flex items-center gap-3 text-sm text-slate-500 mt-1">
-                    <span>No. {{ invoice.invoice_no }}</span>
-                    <span class="text-slate-300">|</span>
-                    <span>{{ formatDate(invoice.created_at) }}</span>
-                  </div>
-                </div>
-              </div>
+          <hr class="my-6" />
 
-              <div class="flex flex-col items-start sm:items-end justify-between gap-3">
-                <p class="text-xl font-bold text-slate-800">
-                  {{ formatCurrency(invoice.amount) }}
-                </p>
-                <div class="flex items-center gap-3">
-                  <span :class="getStatusBadgeClass(invoice.payment?.status || invoice.status)" class="text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
-                    {{ invoice.payment?.status || invoice.status }}
-                  </span>
-                  <a
-                    v-if="
-                      (invoice.status.toLowerCase() === 'pending' || invoice.status.toLowerCase() === 'menunggu') &&
-                      invoice.payment &&
-                      invoice.payment.checkout_link
-                    "
-                    :href="invoice.payment.checkout_link"
-                    target="_blank"
-                    @click.stop 
-                    class="bg-blue-600 text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md"
-                  >
-                    Lanjutkan Pembayaran
-                  </a>
-                </div>
-              </div>
+          <div class="space-y-3 text-left">
+            <div class="flex justify-between items-center">
+              <span class="text-slate-600">Status</span>
+              <span
+                :class="getStatusInfo(invoiceDetail.status).class"
+                class="font-semibold text-sm px-3 py-1 rounded-full"
+              >
+                {{ getStatusInfo(invoiceDetail.status).text }}
+              </span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-slate-600">Tanggal Pembayaran</span>
+              <span class="font-semibold text-slate-800">{{
+                formatDate(
+                  invoiceDetail.paid_at_original || invoiceDetail.created_at
+                )
+              }}</span>
             </div>
           </div>
+
+          <div
+            class="mt-8 text-left bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden"
+          >
+            <div class="p-4 border-b flex justify-between items-center">
+              <h2 class="text-xl font-bold text-slate-800">
+                Paket Konek <br />
+                Entertainment
+              </h2>
+              <img
+                src="~/assets/images/icon-park-solid_doc-detail.svg"
+                alt="Ikon Detail"
+                class="w-6 h-6"
+              />
+            </div>
+            <div class="p-4 space-y-3 text-sm">
+              <div class="flex justify-between">
+                <span class="text-slate-600">No. Invoice</span
+                ><span class="font-semibold text-slate-800 font-mono">{{
+                  invoiceDetail.invoice_no
+                }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-600">Detail Produk</span
+                ><span class="font-semibold text-slate-800"
+                  >{{
+                    invoiceDetail.pelanggan_membership?.product_membership
+                      ?.name || "Paket Konek Entertainment"
+                  }}
+                  (1 Bulan)</span
+                >
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-600">Metode Bayar</span
+                ><span class="font-semibold text-slate-800">{{
+                  invoiceDetail.payment?.channel || "Belum Dibayar"
+                }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-600">SubTotal</span
+                ><span class="font-semibold text-slate-800">{{
+                  formatCurrency(invoiceDetail.amount)
+                }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-600">Biaya Admin</span
+                ><span class="font-semibold text-slate-800">0</span>
+              </div>
+            </div>
+            <div
+              class="p-4 border-t bg-slate-50 flex justify-between font-bold"
+            >
+              <span class="text-slate-800">Total</span>
+              <span class="text-blue-600 text-lg">{{
+                formatCurrency(invoiceDetail.amount)
+              }}</span>
+            </div>
+          </div>
+
+          <div
+            v-if="errorMessage"
+            class="mt-4 bg-rose-100 text-rose-700 p-3 rounded-md text-sm text-left"
+          >
+            {{ errorMessage }}
+          </div>
         </div>
-      </div>
+      </main>
+
+      <footer class="p-4 flex-shrink-0 print-hidden space-y-3">
+        <button
+          v-if="
+            invoiceDetail &&
+            invoiceDetail.status.toLowerCase() !== 'paid' &&
+            invoiceDetail.status.toLowerCase() !== 'berhasil'
+          "
+          @click="handlePaymentAction"
+          :disabled="isRegenerating"
+          class="w-full flex items-center justify-center gap-3 bg-green-500 text-white font-bold py-4 px-10 rounded-xl shadow-lg hover:bg-green-600"
+        >
+          <svg
+            v-if="isRegenerating"
+            class="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          <span>{{
+            isRegenerating
+              ? "Memuat..."
+              : invoiceDetail.status.toLowerCase() === "pending"
+              ? "Lanjutkan Pembayaran"
+              : "Bayar Ulang"
+          }}</span>
+        </button>
+
+        <button
+          v-if="
+            invoiceDetail &&
+            (invoiceDetail.status.toLowerCase() === 'paid' ||
+              invoiceDetail.status.toLowerCase() === 'berhasil')
+          "
+          @click="downloadInvoice"
+          class="w-full flex items-center justify-center gap-3 bg-blue-600 text-white font-bold py-4 px-10 rounded-xl shadow-lg hover:bg-blue-700"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="2"
+            stroke="currentColor"
+            class="w-6 h-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
+            />
+          </svg>
+          Unduh Invoice
+        </button>
+      </footer>
     </div>
   </div>
 </template>
 
-<style>
+<style scoped>
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 .font-sans {
   font-family: "Inter", sans-serif;
+}
+@media print {
+  .print-hidden {
+    display: none;
+  }
+  main {
+    padding: 0;
+  }
 }
 </style>
