@@ -12,10 +12,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["open-modal"]);
-// https://assets.openaccess.co.id/debug/assets/media/netflix-2-1.png
-// https://assets.openaccess.co.id/debug/assets/media/netflix-2-1.png
-// https://assets.openaccess.co.id/debug/assets/media/netflix-2-1.png
-// https://assets.openaccess.co.id/debug/assets/media/netflix-2-1.png
 </script>
 
 <template>

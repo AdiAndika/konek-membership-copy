@@ -31,7 +31,10 @@ const invoices = ref([]);
 const membershipAccounts = ref([]);
 const isLoadingProducts = ref(true);
 const isLoadingInvoices = ref(true);
-const pendingPackageDetails = ref(null);
+
+// State ini akan menjadi sumber data utama untuk daftar produk dan gambarnya
+const packageDetails = ref(null); 
+
 const showPendingModal = ref(false);
 const showReminderPopup = ref(false);
 const showAccountWaitingModal = ref(false);
@@ -42,13 +45,28 @@ onMounted(async () => {
   }
 
   try {
+    isLoadingProducts.value = true;
+    isLoadingInvoices.value = true;
+
+    // Panggil GET Detail Pelanggan Membership
     const response = await api.getMembershipDetail(auth.value.user.id);
     const status = response.data?.status?.toLowerCase();
+    membershipStatus.value = status || 'non-active';
 
+    // Ambil detail akun jika status aktif
     if (status === 'active') {
-      membershipStatus.value = 'active';
-      membershipDetails.value = response.data;
       membershipAccounts.value = response.data.pelanggan_membership_akun || [];
+    }
+
+    // SELALU panggil GET Detail Paket untuk mendapatkan daftar produk dan gambar yang benar
+    if (response.data?.product_membership_id) {
+      const packageResponse = await api.getMembershipPackage(response.data.product_membership_id);
+      packageDetails.value = packageResponse.data;
+    }
+
+    // Logika lain tetap sama
+    if (status === 'active') {
+      membershipDetails.value = response.data;
       const invoiceResponse = await api.getInvoiceList(auth.value.user.id);
       invoices.value = invoiceResponse.data || [];
 
@@ -58,28 +76,20 @@ onMounted(async () => {
         const diffTime = expiryDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        if (diffDays <= 5 && diffDays > 0) { 
+        if (diffDays <= 7 && diffDays > 0) { 
           showReminderPopup.value = true;
         }
       }
       
-      // --- PERBAIKAN LOGIKA DI SINI ---
-      const totalProductsInPackage = Object.keys(accountsData).length;
+      const totalProductsInPackage = packageDetails.value?.product_membership_paket?.length || 0;
       const preparedAccounts = membershipAccounts.value.length;
-      // Hapus kondisi `preparedAccounts > 0`
       if (preparedAccounts < totalProductsInPackage) {
         showAccountWaitingModal.value = true;
       }
 
     } else if (status === 'pending') {
-      membershipStatus.value = 'pending';
       const invoiceResponse = await api.getInvoiceList(auth.value.user.id);
       invoices.value = invoiceResponse.data || [];
-      
-      if (response.data?.product_membership_id) {
-        const packageResponse = await api.getMembershipPackage(response.data.product_membership_id);
-        pendingPackageDetails.value = packageResponse.data;
-      }
       
       const pendingInvoice = invoices.value.find(inv => 
         (inv.status.toLowerCase() === 'pending' || inv.status.toLowerCase() === 'menunggu') && new Date(inv.due_date) > new Date()
@@ -88,8 +98,6 @@ onMounted(async () => {
       if (pendingInvoice) {
         showPendingModal.value = true;
       }
-    } else {
-      membershipStatus.value = 'non-active';
     }
   } catch (error) {
     console.error("Gagal memeriksa status membership:", error);
@@ -100,60 +108,58 @@ onMounted(async () => {
   }
 });
 
+// --- PERBAIKAN UTAMA DI SINI ---
 const productListData = computed(() => {
-  if (membershipStatus.value === 'pending') {
-    if (pendingPackageDetails.value && pendingPackageDetails.value.product_membership_paket) {
-      return pendingPackageDetails.value.product_membership_paket.map(item => ({
-        title: item.paket_addon?.name,
-        image: item.paket_addon?.files?.[0]?.path_string,
-        isOwned: false
-      }));
-    }
+  // Jika detail paket (sumber utama) belum termuat, jangan tampilkan apa-apa
+  if (!packageDetails.value || !packageDetails.value.product_membership_paket) {
+    return [];
   }
 
-  if (membershipStatus.value === 'active') {
-    const allPossibleProducts = Object.keys(accountsData);
-    const normalizeName = (name) => name.replace(/\s/g, '').toLowerCase();
+  const normalizeName = (name) => name ? name.replace(/\s/g, '').toLowerCase() : '';
 
-    return allPossibleProducts.map(staticProductName => {
-      const normalizedStaticName = normalizeName(staticProductName);
-      
-      const ownedAccount = membershipAccounts.value.find(acc => {
-        const apiProductName = acc.account_product?.paket_addon?.name;
-        if (!apiProductName) return false;
-        return normalizedStaticName.includes(normalizeName(apiProductName));
+  // Sumber data untuk daftar produk dan gambar SELALU dari `packageDetails`
+  return packageDetails.value.product_membership_paket.map(item => {
+    const apiProductName = item.paket_addon?.name;
+    // Gambar SELALU diambil dari detail paket
+    const imageUrl = item.paket_addon?.files?.[0]?.path_string; 
+
+    // Cari nama yang cocok di data statis untuk mengambil tutorial, dll.
+    const staticProductName = Object.keys(accountsData).find(key => 
+      normalizeName(key).includes(normalizeName(apiProductName))
+    );
+    const staticData = accountsData[staticProductName];
+
+    // Cari akun yang sudah disiapkan (hanya jika status aktif)
+    let ownedAccount = null;
+    if (membershipStatus.value === 'active') {
+      ownedAccount = membershipAccounts.value.find(acc => {
+        const ownedApiProductName = acc.account_product?.paket_addon?.name;
+        return ownedApiProductName && normalizeName(apiProductName) === normalizeName(ownedApiProductName);
       });
-      
-      const staticData = accountsData[staticProductName];
-      const imageUrl = ownedAccount?.account_product?.paket_addon?.files?.[0]?.path_string;
-      
-      return {
-        title: staticProductName,
-        image: imageUrl,
-        isOwned: !!ownedAccount,
-        apiData: ownedAccount ? {
-          owned: true, 
-          product: staticProductName,
-          email: ownedAccount.account_product?.email,
-          password: ownedAccount.account_product?.password,
-          profileName: ownedAccount.profile_name,
-          pin: ownedAccount.pin,
-          link: ownedAccount.link,
-          alamat: ownedAccount.alamat,
-          tutorial: staticData?.tutorial,
-          terms: staticData?.terms,
-          consequences: staticData?.consequences,
-          displayFields: staticData?.displayFields || ['email', 'password'],
-        } : { 
-          owned: false, 
-          product: staticProductName,
-          displayFields: staticData?.displayFields || [],
-        }
-      };
-    });
-  }
-  return [];
+    }
+
+    return {
+      title: staticProductName || apiProductName,
+      image: imageUrl,
+      isOwned: !!ownedAccount,
+      apiData: { 
+        owned: !!ownedAccount, 
+        product: staticProductName || apiProductName,
+        email: ownedAccount?.account_product?.email,
+        password: ownedAccount?.account_product?.password,
+        profileName: ownedAccount?.profile_name,
+        pin: ownedAccount?.pin,
+        link: ownedAccount?.link,
+        alamat: ownedAccount?.alamat,
+        tutorial: staticData?.tutorial,
+        terms: staticData?.terms,
+        consequences: staticData?.consequences,
+        displayFields: staticData?.displayFields || (ownedAccount ? ['email', 'password'] : []),
+      }
+    };
+  });
 });
+
 
 const isModalOpen = ref(false);
 const selectedAccount = ref(null);

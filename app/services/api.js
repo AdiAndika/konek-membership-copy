@@ -90,7 +90,7 @@ export const api = {
   // --- Konek Membership ---
   getMembershipPackage(id) {
     return request(
-      `/konek/membership/detail-paket-membership?id=${id}&with=product_membership_paket.paket_addon`
+      `/konek/membership/detail-paket-membership?id=${id}&with=product_membership_paket.paket_addon.files`
     );
   },
 
