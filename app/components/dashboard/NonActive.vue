@@ -1,5 +1,4 @@
 <script setup>
-// 1. Impor komponen ContactCard
 import ContactCard from './ContactCard.vue';
 
 defineProps({
@@ -22,9 +21,8 @@ defineProps({
         <div class="text-center">
           <div class="flex justify-center items-center gap-3">
             <h1 class="text-[#374151] font-[Outfit] text-[20px] lg:text-[24px] font-medium">
-              Selamat datang
+              Selamat datang 👋
             </h1>
-            <img src="~/assets/images/love.png" alt="" />
           </div>
           <h1 class="text-[#374151] font-[Outfit] text-[26px] lg:text-[32px] font-semibold">
             {{ userFullName }}
@@ -32,8 +30,8 @@ defineProps({
           <div class="my-4">
             <img
               class="mx-auto w-32 h-32 lg:w-52 lg:h-52"
-              src="~/assets/images/icon-member.png"
-              alt=""
+              src="~/assets/images/member-nonaktif.svg"
+              alt="member non aktif"
             />
           </div>
           <h2 class="text-[#374151] font-[Outfit] text-[22px] lg:text-[24px] font-semibold mb-2">
@@ -42,13 +40,14 @@ defineProps({
           <p class="lg:w-[400px] mx-auto text-center text-[#374151] font-[Outfit] lg:text-[20px] mb-6">
             Ayo langganan sekarang, nikmati berbagai hiburan dan edukasi menarik
           </p>
-          <NuxtLink
-            to="/payment/checkout"
+          
+          <a
+            href="#paket-penawaran"
             class="flex items-center justify-center gap-2 w-full py-3 rounded-[12px] bg-[#1D9BF0] text-white font-[Outfit] text-[16px] font-semibold"
           >
             <img src="~/assets/images/cart.png" alt="cart" class="w-5 h-5" />
             Langganan Sekarang
-          </NuxtLink>
+          </a>
         </div>
       </div>
       <div class="my-4 flex justify-center">
@@ -61,6 +60,7 @@ defineProps({
     </section>
 
     <section
+      id="paket-penawaran"
       class="pt-[10px] pb-[60px] bg-gradient-to-b from-white via-blue-50 to-blue-500"
     >
       <div class="container mx-auto px-3 lg:px-6 text-center">
@@ -104,4 +104,9 @@ defineProps({
 
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap");
+
+/* PERUBAHAN DI SINI: Menambahkan efek scroll yang halus */
+html {
+  scroll-behavior: smooth;
+}
 </style>

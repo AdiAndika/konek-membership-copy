@@ -1,10 +1,11 @@
 <script setup>
 import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 
 const props = defineProps({
   status: {
     type: String,
-    required: true, // 'active' atau 'pending'
+    required: true,
   },
   userFullName: {
     type: String,
@@ -14,9 +15,25 @@ const props = defineProps({
     type: [Date, String],
     default: null,
   },
+  // **[PERUBAHAN 1]** Tambahkan prop untuk menerima data invoice
+  pendingInvoice: {
+    type: Object,
+    default: null,
+  },
 });
 
-// Computed properties ini hanya digunakan jika status 'active'
+const router = useRouter();
+
+// **[PERUBAHAN 2]** Buat fungsi untuk navigasi
+const goToInvoice = () => {
+  // Pastikan data invoice ada sebelum navigasi
+  if (props.pendingInvoice) {
+    router.push(
+      `/payment/invoices?invoice_id=${props.pendingInvoice.invoice_id}&invoice_no=${props.pendingInvoice.invoice_no}`
+    );
+  }
+};
+
 const daysRemaining = computed(() => {
   if (props.status !== 'active' || !props.expiryDate) return 0;
   const now = new Date();
@@ -90,6 +107,14 @@ const progressStyle = computed(() => {
         <div class="my-6">
           <img class="mx-auto w-70 h-70 lg:w-40 lg:h-40" src="~/assets/images/pending-status.svg" alt="Icon Pending" />
         </div>
+        <p class="font-semibold text-lg text-gray-900 mb-4">
+            Selesaikan pembayaran untuk mengaktifkan akun Anda.
+        </p>
+        <button
+          @click="goToInvoice"
+          class="w-full bg-yellow-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-yellow-600 transition-colors">
+          Lanjutkan Pembayaran
+        </button>
       </div>
     </div>
   </aside>

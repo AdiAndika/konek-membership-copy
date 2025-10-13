@@ -1,6 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
-import { ADMIN_WHATSAPP_NUMBER } from '~/utils/constants.js';
+import { ref, computed } from "vue";
 
 const props = defineProps({
   account: {
@@ -9,7 +8,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(["close"]);
 
 const copyStatus = ref({});
 
@@ -22,16 +21,16 @@ const copyToClipboard = async (text, field) => {
   if (!text) return;
   try {
     await navigator.clipboard.writeText(String(text));
-    Object.keys(copyStatus.value).forEach(key => {
-      copyStatus.value[key] = 'Salin';
+    Object.keys(copyStatus.value).forEach((key) => {
+      copyStatus.value[key] = "Salin";
     });
-    copyStatus.value[field] = 'Tersalin!';
+    copyStatus.value[field] = "Tersalin!";
     setTimeout(() => {
-      copyStatus.value[field] = 'Salin';
+      copyStatus.value[field] = "Salin";
     }, 2000);
   } catch (err) {
-    console.error('Gagal menyalin teks: ', err);
-    copyStatus.value[field] = 'Gagal';
+    console.error("Gagal menyalin teks: ", err);
+    copyStatus.value[field] = "Gagal";
   }
 };
 </script>
@@ -39,29 +38,43 @@ const copyToClipboard = async (text, field) => {
 <template>
   <div
     class="relative z-50 flex flex-col bg-white rounded-t-2xl shadow-2xl w-full md:max-w-2xl lg:max-w-3xl"
-    style="max-height: 90vh;"
+    style="max-height: 90vh"
   >
-    <header class="relative flex-shrink-0 p-4 border-b border-gray-200 flex justify-center items-center">
+    <header
+      class="relative flex-shrink-0 p-4 border-b border-gray-200 flex justify-center items-center"
+    >
       <h2 class="text-xl font-bold text-gray-800 text-center">
-        {{ account.owned ? 'Akun & Tutorial Aktivasi' : 'Informasi Akun' }}
+        {{ account.owned ? "Akun & Tutorial Aktivasi" : "Informasi Akun" }}
       </h2>
       <button
         @click="emit('close')"
         class="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-800"
         aria-label="Tutup"
       >
-        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        <svg
+          class="w-6 h-6"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          />
         </svg>
       </button>
     </header>
 
     <div class="overflow-y-auto p-6">
-      
       <div v-if="!account.owned" class="text-center py-8">
         <h3 class="text-xl font-bold mb-4">Akun Sedang Disiapkan</h3>
         <p class="text-gray-600">
-          Harap tunggu, akun <span class="font-semibold">{{ account.product }}</span> Anda sedang dalam proses penyiapan. Jika akun belum siap dalam 30 menit, Anda dapat mengajukan pengembalian dana dengan menghubungi admin.
+          Harap tunggu, akun
+          <span class="font-semibold">{{ account.product }}</span> Anda sedang
+          dalam proses penyiapan. Jika akun belum siap dalam 30 menit, Anda
+          dapat mengajukan pengembalian dana dengan menghubungi admin.
         </p>
       </div>
 
@@ -71,79 +84,134 @@ const copyToClipboard = async (text, field) => {
           <div class="border rounded-lg p-4 space-y-3 text-sm md:text-base">
             <div class="flex justify-between items-center gap-4">
               <span class="text-gray-600">Produk</span>
-              <span class="font-medium text-gray-900 text-right">{{ account.product || '-' }}</span>
+              <span class="font-medium text-gray-900 text-right">{{
+                account.product || "-"
+              }}</span>
             </div>
-            
-            <div v-if="shouldDisplay('email')" class="flex justify-between items-center gap-4">
+
+            <div
+              v-if="shouldDisplay('email')"
+              class="flex justify-between items-center gap-4"
+            >
               <span class="text-gray-600">Email</span>
               <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-900 break-all">{{ account.email }}</span>
-                <button @click="copyToClipboard(account.email, 'email')" class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50">
-                  {{ copyStatus.email || 'Salin' }}
+                <span class="font-medium text-gray-900 break-all">{{
+                  account.email
+                }}</span>
+                <button
+                  @click="copyToClipboard(account.email, 'email')"
+                  class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50"
+                >
+                  {{ copyStatus.email || "Salin" }}
                 </button>
               </div>
             </div>
 
-            <div v-if="shouldDisplay('password')" class="flex justify-between items-center gap-4">
+            <div
+              v-if="shouldDisplay('password')"
+              class="flex justify-between items-center gap-4"
+            >
               <span class="text-gray-600">Password</span>
               <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-900">{{ account.password }}</span>
-                <button @click="copyToClipboard(account.password, 'password')" class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50">
-                  {{ copyStatus.password || 'Salin' }}
+                <span class="font-medium text-gray-900">{{
+                  account.password
+                }}</span>
+                <button
+                  @click="copyToClipboard(account.password, 'password')"
+                  class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50"
+                >
+                  {{ copyStatus.password || "Salin" }}
                 </button>
               </div>
             </div>
 
-            <div v-if="shouldDisplay('profileName')" class="flex justify-between items-center gap-4">
+            <div
+              v-if="shouldDisplay('profileName')"
+              class="flex justify-between items-center gap-4"
+            >
               <span class="text-gray-600">Nama Profile</span>
-              <span class="font-medium text-gray-900">{{ account.profileName }}</span>
+              <span class="font-medium text-gray-900">{{
+                account.profileName
+              }}</span>
             </div>
 
-            <div v-if="shouldDisplay('pin')" class="flex justify-between items-center gap-4">
+            <div
+              v-if="shouldDisplay('pin')"
+              class="flex justify-between items-center gap-4"
+            >
               <span class="text-gray-600">Kode PIN</span>
               <div class="flex items-center gap-2">
                 <span class="font-medium text-gray-900">{{ account.pin }}</span>
-                <button @click="copyToClipboard(account.pin, 'pin')" class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50">
-                   {{ copyStatus.pin || 'Salin' }}
-                </button>
-              </div>
-            </div>
-            
-            <div v-if="shouldDisplay('link')" class="flex justify-between items-center gap-4">
-              <span class="text-gray-600">Link</span>
-              <div class="flex items-center gap-2">
-                <span class="font-medium text-gray-900 break-all">{{ account.link }}</span>
-                <button @click="copyToClipboard(account.link, 'link')" class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50">
-                   {{ copyStatus.link || 'Salin' }}
+                <button
+                  @click="copyToClipboard(account.pin, 'pin')"
+                  class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50"
+                >
+                  {{ copyStatus.pin || "Salin" }}
                 </button>
               </div>
             </div>
 
-            <div v-if="shouldDisplay('alamat')" class="flex justify-between items-center gap-4">
-              <span class="text-gray-600">Alamat</span>
-              <span class="font-medium text-gray-900">{{ account.alamat }}</span>
+            <div
+              v-if="shouldDisplay('link')"
+              class="flex justify-between items-center gap-4"
+            >
+              <span class="text-gray-600">Link</span>
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-gray-900 break-all">{{
+                  account.link
+                }}</span>
+                <button
+                  @click="copyToClipboard(account.link, 'link')"
+                  class="text-blue-600 font-semibold hover:underline text-xs flex-shrink-0 px-2 py-1 rounded hover:bg-blue-50"
+                >
+                  {{ copyStatus.link || "Salin" }}
+                </button>
+              </div>
             </div>
-            
+
+            <div
+              v-if="shouldDisplay('alamat')"
+              class="flex justify-between items-center gap-4"
+            >
+              <span class="text-gray-600">Alamat</span>
+              <span class="font-medium text-gray-900">{{
+                account.alamat
+              }}</span>
+            </div>
           </div>
         </div>
 
         <div class="space-y-6">
           <div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Tutorial Aktivasi</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">
+              Tutorial Aktivasi
+            </h3>
             <ol class="list-decimal list-inside text-gray-700 space-y-1.5 pl-1">
-              <li v-for="(step, i) in account.tutorial" :key="`tut-${i}`">{{ step }}</li>
+              <li v-for="(step, i) in account.tutorial" :key="`tut-${i}`">
+                {{ step }}
+              </li>
             </ol>
           </div>
           <div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Ketentuan Pemakaian</h3>
-            <ol class="list-decimal list-inside text-gray-700 space-y-1.5 pl-1 mt-1">
-              <li v-for="(term, i) in account.terms" :key="`term-${i}`">{{ term }}</li>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">
+              Ketentuan Pemakaian
+            </h3>
+            <ol
+              class="list-decimal list-inside text-gray-700 space-y-1.5 pl-1 mt-1"
+            >
+              <li v-for="(term, i) in account.terms" :key="`term-${i}`">
+                {{ term }}
+              </li>
             </ol>
           </div>
           <div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">Konsekuensi Melanggar</h3>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">
+              Konsekuensi Melanggar
+            </h3>
             <ol class="list-decimal list-inside text-gray-700 space-y-1.5 pl-1">
-              <li v-for="(con, i) in account.consequences" :key="`con-${i}`">{{ con }}</li>
+              <li v-for="(con, i) in account.consequences" :key="`con-${i}`">
+                {{ con }}
+              </li>
             </ol>
           </div>
         </div>

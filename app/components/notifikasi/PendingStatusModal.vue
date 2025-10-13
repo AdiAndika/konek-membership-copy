@@ -1,5 +1,22 @@
 <script setup>
+const props = defineProps({
+  invoice: {
+    type: Object,
+    default: null,
+  },
+});
+
 const emit = defineEmits(["close"]);
+const router = useRouter();
+
+const goToInvoice = () => {
+  if (props.invoice) {
+    router.push(
+      `/payment/invoices?invoice_id=${props.invoice.invoice_id}&invoice_no=${props.invoice.invoice_no}`
+    );
+    emit("close"); // Menutup modal setelah navigasi
+  }
+};
 </script>
 
 <template>
@@ -45,6 +62,12 @@ const emit = defineEmits(["close"]);
           Pembayaran Anda <b class="text-yellow-500">Pending</b>. Selesaikan
           pembayaran untuk menikmati semua layanan.
         </p>
+        <button
+          @click="goToInvoice"
+          class="w-full bg-yellow-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Lanjutkan Pembayaran
+        </button>
       </div>
     </div>
   </div>
