@@ -12,7 +12,7 @@ defineProps({
 <template>
   <div>
     <section
-      style="background: linear-gradient(180deg, #0080ff 0%, #fff 61.07%)"
+      style="background: linear-gradient(180deg, #6B7280 0%, #fff 61.07%)"
       class="flex flex-col items-center justify-center p-4 py-8"
     >
       <div
@@ -29,7 +29,7 @@ defineProps({
           </h1>
           <div class="my-4">
             <img
-              class="mx-auto w-32 h-32 lg:w-52 lg:h-52"
+              class="mx-auto w-70 h-70 lg:w-40 lg:h-40"
               src="~/assets/images/member-nonaktif.svg"
               alt="member non aktif"
             />

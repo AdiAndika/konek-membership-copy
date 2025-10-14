@@ -107,9 +107,6 @@ const progressStyle = computed(() => {
         <div class="my-6">
           <img class="mx-auto w-70 h-70 lg:w-40 lg:h-40" src="~/assets/images/pending-status.svg" alt="Icon Pending" />
         </div>
-        <p class="font-semibold text-lg text-gray-900 mb-4">
-            Selesaikan pembayaran untuk mengaktifkan akun Anda.
-        </p>
         <button
           @click="goToInvoice"
           class="w-full bg-yellow-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-yellow-600 transition-colors">

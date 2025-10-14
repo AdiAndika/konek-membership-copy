@@ -196,6 +196,17 @@ const productListData = computed(() => {
   });
 });
 
+// Computed property untuk mengubah background berdasarkan status
+const dashboardStyle = computed(() => {
+  if (membershipStatus.value === 'active') {
+    return { background: 'linear-gradient(180deg, #0080ff 0%, #fff 25%)' };
+  }
+  if (membershipStatus.value === 'pending') {
+    return { background: 'linear-gradient(180deg, #F8A902 0%, #fff 25%)' };
+  }
+  return {}; // Untuk non-active, background diatur di komponennya
+});
+
 // State dan fungsi untuk modal detail akun.
 const isModalOpen = ref(false);
 const selectedAccount = ref(null);
@@ -216,7 +227,7 @@ const closeAccountModal = () => { isModalOpen.value = false; };
 
     <DashboardNonActive v-else-if="membershipStatus === 'non-active'" :user-full-name="userFullName" />
     
-    <div v-else style="background: linear-gradient(180deg, #0080ff 0%, #fff 25%)">
+    <div v-else :style="dashboardStyle">
       <div class="container mx-auto px-4 lg:px-8 py-8">
         <div class="lg:flex lg:gap-8 xl:gap-12">
           
