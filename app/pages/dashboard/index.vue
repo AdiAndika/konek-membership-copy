@@ -43,15 +43,13 @@ const packageDetails = ref(null);
 const showPendingModal = ref(false);
 const showReminderPopup = ref(false);
 const showAccountWaitingModal = ref(false);
-// [PERUBAHAN]: Tambahkan state untuk modal expired
 const showExpiredModal = ref(false);
 
 const pendingInvoice = ref(null);
-// [PERUBAHAN]: Tambahkan state untuk invoice expired
 const expiredInvoice = ref(null);
 
 
-// --- 4. Lifecycle Hook: onMounted ---
+// --- 4. Lifecycle Hook: onMounted (DENGAN LOGIKA BARU) ---
 onMounted(async () => {
   if (!auth.value.user || !auth.value.user.id) {
     return router.push("/auth/login");
@@ -61,128 +59,134 @@ onMounted(async () => {
     isLoadingProducts.value = true;
     isLoadingInvoices.value = true;
 
+    // 1. Ambil detail membership utama
     const response = await api.getMembershipDetail(auth.value.user.id);
-    const status = response.data?.status?.toLowerCase();
-    membershipStatus.value = status || "non-active";
+    membershipDetails.value = response.data;
 
-    if (status === "active") {
-      membershipAccounts.value = response.data.pelanggan_membership_akun || [];
+    let status = membershipDetails.value?.status?.toLowerCase();
+    const endDateString = membershipDetails.value?.end_at;
+
+    // 2. Logika utama: Tentukan apakah sudah expired, ini akan menimpa status dari API
+    if (endDateString) {
+      const expiryDate = new Date(endDateString);
+      if (expiryDate.getTime() < new Date().getTime()) {
+        status = 'expired';
+      }
     }
 
-    if (response.data?.product_membership_id) {
-      const packageResponse = await api.getMembershipPackage(
-        response.data.product_membership_id
-      );
-      packageDetails.value = packageResponse.data;
+    // Atur status final untuk UI
+    membershipStatus.value = status || "nonactive";
+
+    // 3. Ambil data tambahan berdasarkan status final
+    if (membershipStatus.value === 'active' || membershipStatus.value === 'expired') {
+        if (membershipDetails.value.product_membership_id) {
+            const packageResponse = await api.getMembershipPackage(
+                membershipDetails.value.product_membership_id
+            );
+            packageDetails.value = packageResponse.data;
+        }
     }
 
-    if (status === "active") {
-      membershipDetails.value = response.data;
-      const invoiceResponse = await api.getInvoiceList(auth.value.user.id);
-      invoices.value = invoiceResponse.data || [];
+    // Ambil histori invoice jika pengguna bukan pengguna baru (nonactive sejati)
+    if (membershipStatus.value !== 'nonactive') {
+        const invoiceResponse = await api.getInvoiceList(auth.value.user.id);
+        invoices.value = invoiceResponse.data || [];
+    }
 
-      if (response.data?.end_at) {
-        const expiryDate = new Date(response.data.end_at);
+    // 4. Jalankan logika spesifik per status (seperti menampilkan pop-up)
+    if (membershipStatus.value === 'active') {
+        membershipAccounts.value = membershipDetails.value.pelanggan_membership_akun || [];
+        const expiryDate = new Date(endDateString);
         const today = new Date();
         const diffTime = expiryDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         if (diffDays <= 7 && diffDays > 0) {
-          showReminderPopup.value = true;
+            showReminderPopup.value = true;
         }
-      }
-      
-      const totalProductsInPackage =
-        packageDetails.value?.product_membership_paket?.length || 0;
-      const preparedAccounts = membershipAccounts.value.length;
-      if (preparedAccounts < totalProductsInPackage) {
-        showAccountWaitingModal.value = true;
-      }
+        
+        const totalProductsInPackage = packageDetails.value?.product_membership_paket?.length || 0;
+        const preparedAccounts = membershipAccounts.value.length;
+        if (preparedAccounts < totalProductsInPackage) {
+            showAccountWaitingModal.value = true;
+        }
 
-    } else if (status === "pending") {
-      const invoiceResponse = await api.getInvoiceList(auth.value.user.id);
-      invoices.value = invoiceResponse.data || [];
-      
-      pendingInvoice.value = invoices.value.find(
-        (inv) =>
-          (inv.status.toLowerCase() === "pending" ||
-            inv.status.toLowerCase() === "menunggu") &&
-          new Date(inv.due_date) > new Date()
-      );
-
-      // [PERUBAHAN]: Logika untuk menampilkan notifikasi
-      if (pendingInvoice.value) {
-        // Jika ada invoice pending, tampilkan modal pending
-        showPendingModal.value = true;
-      } else {
-        // Jika tidak ada invoice pending, cari invoice yang sudah kadaluwarsa
-        expiredInvoice.value = invoices.value.find(
-          (inv) => inv.status.toLowerCase() === "expired"
+    } else if (membershipStatus.value === 'pending') {
+        pendingInvoice.value = invoices.value.find(
+            (inv) => (inv.status.toLowerCase() === 'pending' || inv.status.toLowerCase() === 'menunggu') && new Date(inv.due_date) > new Date()
         );
-        // Jika ditemukan invoice kadaluwarsa, tampilkan modal kadaluwarsa
-        if (expiredInvoice.value) {
-          showExpiredModal.value = true;
+
+        if (pendingInvoice.value) {
+            showPendingModal.value = true;
+        } else {
+            expiredInvoice.value = invoices.value.find((inv) => inv.status.toLowerCase() === 'expired');
+            if (expiredInvoice.value) {
+                showExpiredModal.value = true;
+            }
         }
-      }
     }
+
   } catch (error) {
     console.error("Gagal memeriksa status membership:", error);
-    membershipStatus.value = "non-active";
+    // Jika API gagal (misal 404 karena tidak ada data), anggap sebagai non-aktif
+    membershipStatus.value = "nonactive";
   } finally {
     isLoadingProducts.value = false;
     isLoadingInvoices.value = false;
   }
 });
 
-// --- 5. Computed Properties ---
+
+// --- 5. Computed Properties (Disederhanakan) ---
 const productListData = computed(() => {
-  if (!packageDetails.value || !packageDetails.value.product_membership_paket) {
-    return [];
-  }
-
-  const normalizeName = (name) =>
-    name ? name.replace(/\s/g, "").toLowerCase() : "";
-
-  return packageDetails.value.product_membership_paket.map((item) => {
-    const apiProductName = item.paket_addon?.name;
-    const imageUrl = item.paket_addon?.files?.[0]?.path_string;
-
-    const staticProductName = Object.keys(accountsData).find((key) =>
-      normalizeName(key).includes(normalizeName(apiProductName))
-    );
-    const staticData = accountsData[staticProductName];
-
-    let ownedAccount = null;
-    if (membershipStatus.value === "active") {
-      ownedAccount = membershipAccounts.value.find((acc) => {
-        const ownedApiProductName = acc.account_product?.paket_addon?.name;
-        return (
-          ownedApiProductName &&
-          normalizeName(apiProductName) === normalizeName(ownedApiProductName)
-        );
-      });
+    // Logika ini sekarang lebih sederhana karena kita sudah memastikan packageDetails diisi untuk status active & expired
+    if (!packageDetails.value?.product_membership_paket) {
+        return [];
     }
 
-    return {
-      title: staticProductName || apiProductName,
-      image: imageUrl,
-      isOwned: !!ownedAccount,
-      apiData: { 
-        owned: !!ownedAccount, 
-        product: staticProductName || apiProductName,
-        email: ownedAccount?.account_product?.email,
-        password: ownedAccount?.account_product?.password,
-        profileName: ownedAccount?.profile_name,
-        pin: ownedAccount?.pin,
-        link: ownedAccount?.link,
-        alamat: ownedAccount?.alamat,
-        tutorial: staticData?.tutorial,
-        terms: staticData?.terms,
-        consequences: staticData?.consequences,
-        displayFields: staticData?.displayFields || (ownedAccount ? ['email', 'password'] : []),
-      }
-    };
-  });
+    const normalizeName = (name) =>
+        name ? name.replace(/\s/g, "").toLowerCase() : "";
+
+    return packageDetails.value.product_membership_paket.map((item) => {
+        const apiProductName = item.paket_addon?.name;
+        const imageUrl = item.paket_addon?.files?.[0]?.path_string;
+
+        const staticProductName = Object.keys(accountsData).find((key) =>
+        normalizeName(key).includes(normalizeName(apiProductName))
+        );
+        const staticData = accountsData[staticProductName];
+
+        let ownedAccount = null;
+        if (membershipStatus.value === "active") {
+        ownedAccount = membershipAccounts.value.find((acc) => {
+            const ownedApiProductName = acc.account_product?.paket_addon?.name;
+            return (
+            ownedApiProductName &&
+            normalizeName(apiProductName) === normalizeName(ownedApiProductName)
+            );
+        });
+        }
+
+        return {
+            title: staticProductName || apiProductName,
+            image: imageUrl,
+            isOwned: !!ownedAccount,
+            apiData: { 
+                owned: !!ownedAccount, 
+                product: staticProductName || apiProductName,
+                email: ownedAccount?.account_product?.email,
+                password: ownedAccount?.account_product?.password,
+                profileName: ownedAccount?.profile_name,
+                pin: ownedAccount?.pin,
+                link: ownedAccount?.link,
+                alamat: ownedAccount?.alamat,
+                tutorial: staticData?.tutorial,
+                terms: staticData?.terms,
+                consequences: staticData?.consequences,
+                displayFields: staticData?.displayFields || (ownedAccount ? ['email', 'password'] : []),
+            }
+        };
+    });
 });
 
 const dashboardStyle = computed(() => {
@@ -192,18 +196,27 @@ const dashboardStyle = computed(() => {
   if (membershipStatus.value === 'pending') {
     return { background: 'linear-gradient(180deg, #F8A902 0%, #fff 25%)' };
   }
+  if (membershipStatus.value === 'expired') {
+    return { background: 'linear-gradient(180deg, #6B7280 0%, #fff 25%)' };
+  }
   return {};
 });
 
 const isModalOpen = ref(false);
 const selectedAccount = ref(null);
 const openAccountModal = (item) => {
-    if (item && item.apiData) {
+    // Hanya izinkan buka modal jika status 'active'
+    if (membershipStatus.value === 'active' && item && item.apiData) {
         selectedAccount.value = item.apiData;
         isModalOpen.value = true;
     }
 };
 const closeAccountModal = () => { isModalOpen.value = false; };
+
+// Fungsi ini akan dipanggil dari SidebarStatus saat "Pilih Paket Lain" diklik
+const handleChangePackage = () => {
+  membershipStatus.value = 'nonactive';
+};
 </script>
 
 <template>
@@ -212,21 +225,28 @@ const closeAccountModal = () => { isModalOpen.value = false; };
       <DashboardLoadingSpinner />
     </div>
 
-    <DashboardNonActive v-else-if="membershipStatus === 'non-active'" :user-full-name="userFullName" />
+    <NonActive 
+      v-else-if="membershipStatus === 'nonactive'" 
+      :user-full-name="userFullName"
+      :invoices="invoices" 
+    />
     
     <div v-else :style="dashboardStyle">
       <div class="container mx-auto px-4 lg:px-8 py-8">
         <div class="lg:flex lg:gap-8 xl:gap-12">
           
-          <DashboardSidebarStatus 
+          <SidebarStatus 
             :status="membershipStatus"
             :user-full-name="userFullName"
             :expiry-date="membershipDetails?.end_at"
             :pending-invoice="pendingInvoice"
+            :package-id="membershipDetails?.product_membership_id"
+            :package-name="packageDetails?.name || membershipDetails?.product_membership?.name"
+            @change-package="handleChangePackage"
           />
           
           <main class="lg:w-2/3 xl:w-3/4">
-            <DashboardProductList 
+            <ProductList 
               :status="membershipStatus"
               :products="productListData"
               :is-loading="isLoadingProducts"
@@ -234,7 +254,7 @@ const closeAccountModal = () => { isModalOpen.value = false; };
             />
             
             <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-              <DashboardInvoiceHistory 
+              <InvoiceHistory 
                 :invoices="invoices"
                 :is-loading="isLoadingInvoices"
               />

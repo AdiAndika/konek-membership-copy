@@ -1,10 +1,16 @@
 <script setup>
 import ContactCard from './ContactCard.vue';
+import InvoiceHistory from './InvoiceHistory.vue'; // Impor komponen InvoiceHistory
 
 defineProps({
   userFullName: {
     type: String,
     default: 'Pengguna'
+  },
+  // Prop baru untuk invoices
+  invoices: {
+    type: Array,
+    default: () => []
   }
 });
 </script>
@@ -59,6 +65,12 @@ defineProps({
       </div>
     </section>
 
+    <section v-if="invoices && invoices.length > 0" class="pt-10 pb-16 bg-white">
+        <div class="container mx-auto px-4 max-w-lg">
+            <InvoiceHistory :invoices="invoices" />
+        </div>
+    </section>
+
     <section
       id="paket-penawaran"
       class="pt-[10px] pb-[60px] bg-gradient-to-b from-white via-blue-50 to-blue-500"
@@ -68,7 +80,7 @@ defineProps({
           Langganan Sekarang! Cuma Rp.99.000 per bulan
         </h2>
         <div class="mt-10 max-w-sm mx-auto">
-          <NuxtLink to="/payment/checkout" aria-label="Langganan Sekarang">
+          <NuxtLink to="/payment/checkout?id=1" aria-label="Langganan Sekarang">
             <img
               src="~/assets/images/card-promo.svg"
               alt="Kartu Promo Konek Entertainment"
@@ -78,7 +90,7 @@ defineProps({
 
           <div class="mt-8">
             <NuxtLink
-              to="/payment/checkout"
+              to="/payment/checkout?id=1"
               class="w-full bg-white text-[#0694FF] font-bold py-3 px-6 rounded-full flex items-center justify-center space-x-3 shadow-lg hover:scale-105"
             >
               <img
@@ -105,7 +117,6 @@ defineProps({
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap");
 
-/* PERUBAHAN DI SINI: Menambahkan efek scroll yang halus */
 html {
   scroll-behavior: smooth;
 }

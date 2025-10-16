@@ -2,7 +2,7 @@
 const props = defineProps({
   status: {
     type: String,
-    required: true, // 'active' atau 'pending'
+    required: true,
   },
   products: {
     type: Array,
@@ -17,7 +17,7 @@ const emit = defineEmits(["open-modal"]);
 <template>
   <section class="mb-12">
     <h2
-      class="text-3xl md:text-4xl font-bold text-gray-900 lg:text-gray-50 mb-4"
+      class="text-3xl md:text-4xl font-bold text-gray-900 lg:text-white mb-4"
     >
       Produk Digital
     </h2>
@@ -47,10 +47,11 @@ const emit = defineEmits(["open-modal"]);
           Lihat akun
         </button>
         <p
-          v-else-if="status === 'pending'"
-          class="text-yellow-500 font-semibold"
+          v-else-if="status === 'pending' || status === 'expired'"
+          class="font-semibold"
+          :class="{ 'text-yellow-500': status === 'pending', 'text-gray-500': status === 'expired' }"
         >
-          Menunggu...
+          Menunggu
         </p>
       </div>
     </div>

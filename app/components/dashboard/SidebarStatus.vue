@@ -15,18 +15,40 @@ const props = defineProps({
     type: [Date, String],
     default: null,
   },
-  // **[PERUBAHAN 1]** Tambahkan prop untuk menerima data invoice
   pendingInvoice: {
     type: Object,
     default: null,
   },
+  packageId: {
+    type: [String, Number],
+    default: null,
+  },
+  packageName: {
+    type: String,
+    default: 'Membership Konek',
+  }
 });
 
+const emit = defineEmits(['change-package']);
 const router = useRouter();
 
-// **[PERUBAHAN 2]** Buat fungsi untuk navigasi
+const config = useRuntimeConfig();
+const ADMIN_WHATSAPP_NUMBER = config.public.ADMIN_WHATSAPP_NUMBER;
+
+const renewPackageLink = computed(() => {
+  const message = `Halo Admin Konek Membership, saya ${props.userFullName}, ingin perpanjang paket membership saya (${props.packageName}).`;
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodedMessage}`;
+});
+
+const chooseAnotherPackageLink = computed(() => {
+  const message = `Halo Admin, saya ${props.userFullName}, ingin melihat dan memilih paket membership lainnya.`;
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${ADMIN_WHATSAPP_NUMBER}?text=${encodedMessage}`;
+});
+
+
 const goToInvoice = () => {
-  // Pastikan data invoice ada sebelum navigasi
   if (props.pendingInvoice) {
     router.push(
       `/payment/invoices?invoice_id=${props.pendingInvoice.invoice_id}&invoice_no=${props.pendingInvoice.invoice_no}`
@@ -44,7 +66,7 @@ const daysRemaining = computed(() => {
 });
 
 const formattedExpiryDate = computed(() => {
-  if (props.status !== 'active' || !props.expiryDate) return 'Tidak Aktif';
+  if ((props.status !== 'active' && props.status !== 'expired') || !props.expiryDate) return 'Tidak Aktif';
   return new Date(props.expiryDate).toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -100,6 +122,38 @@ const progressStyle = computed(() => {
         <div class="flex justify-center items-center gap-2 text-sm text-gray-600 mt-1">
           <img class="w-4 h-4" src="~/assets/images/calender.png" alt="Kalender" />
           <span>Masa Aktif</span>
+        </div>
+      </div>
+
+      <div v-if="status === 'expired'">
+        <div class="relative w-48 h-48 mx-auto my-4">
+          <svg class="w-full h-full" viewBox="0 0 120 120">
+            <circle class="text-gray-200" stroke-width="10" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60" />
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="text-5xl font-extrabold text-red-500">0</span>
+            <span class="text-sm font-semibold text-gray-500">Hari Aktif</span>
+          </div>
+        </div>
+        <h2 class="text-lg font-semibold text-red-500">Paket Telah Berakhir</h2>
+        <p class="text-sm text-gray-600 mt-1 mb-4">
+          Berakhir pada: {{ formattedExpiryDate }}
+        </p>
+        <div class="space-y-3">
+          <a
+            :href="renewPackageLink"
+            target="_blank"
+            class="flex items-center justify-center gap-2 w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors">
+            <img src="~/assets/images/cart.png" alt="cart" class="w-5 h-5" />
+            <span>Perpanjang Paket</span>
+          </a>
+          <a
+            :href="chooseAnotherPackageLink"
+            target="_blank"
+            class="flex items-center justify-center gap-2 w-full bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors">
+            <img src="~/assets/images/cart.png" alt="cart" class="w-5 h-5" />
+            <span>Pilih Paket Lain</span>
+          </a>
         </div>
       </div>
 
