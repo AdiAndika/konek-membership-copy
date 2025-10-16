@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuth } from '~/composables/useState';
 
@@ -7,17 +7,55 @@ const route = useRoute();
 const router = useRouter();
 const auth = useAuth();
 
-const isLoggedIn = computed(() => !!auth.value.token); 
+const isLoggedIn = computed(() => !!auth.value.token);
 const isOpen = ref(false);
+
+// [PERUBAHAN]: State untuk visibilitas navbar dan posisi scroll terakhir
+const isNavbarVisible = ref(true);
+const lastScrollPosition = ref(0);
 
 const logout = () => {
   auth.value = { user: null, token: null };
   router.push('/');
 };
+
+// [PERUBAHAN]: Fungsi untuk menangani event scroll
+const handleScroll = () => {
+  const currentScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+  
+  // Jangan lakukan apa-apa jika scroll negatif (overscroll di beberapa device)
+  if (currentScrollPosition < 0) {
+    return;
+  }
+
+  // Tampilkan navbar jika scroll ke atas
+  if (currentScrollPosition < lastScrollPosition.value) {
+    isNavbarVisible.value = true;
+  } 
+  // Sembunyikan navbar jika scroll ke bawah dan sudah melewati tinggi navbar
+  else if (currentScrollPosition > 80) { // Angka 80 adalah threshold, bisa disesuaikan
+    isNavbarVisible.value = false;
+  }
+
+  // Perbarui posisi scroll terakhir
+  lastScrollPosition.value = currentScrollPosition;
+};
+
+// [PERUBAHAN]: Tambahkan dan hapus event listener saat komponen dimuat dan dihancurkan
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll);
+});
 </script>
 
 <template>
-  <header class="shadow-sm relative z-50 bg-white">
+  <header 
+    class="sticky top-0 w-full z-50 bg-white shadow-sm transition-transform duration-300 ease-in-out"
+    :class="{ 'transform -translate-y-full': !isNavbarVisible }"
+  >
     <div>
       <div class="flex justify-between items-center px-4 lg:px-12 py-3">
         <router-link to="/">

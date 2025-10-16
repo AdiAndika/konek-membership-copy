@@ -52,6 +52,7 @@ export const api = {
   checkUserNumber(phone) {
     const formData = new FormData();
     formData.append("phone", phone);
+    formData.append("type", "login_membership"); // Penambahan parameter type
     return request("/user/check-user-number", {
       method: "POST",
       body: formData,

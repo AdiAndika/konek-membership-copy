@@ -67,12 +67,12 @@ const formatDate = (dateString) => {
            karena halaman `invoices.vue` kini adalah halaman detail.
            Namun, kita biarkan saja untuk saat ini jika Anda ingin membuat halaman
            daftar lengkap di masa depan. -->
-      <NuxtLink
+      <!-- <NuxtLink
         to="/payment/invoices"
         class="text-sm font-semibold text-blue-600 hover:underline"
       >
         Lihat Detail
-      </NuxtLink>
+      </NuxtLink> -->
     </div>
 
     <div v-if="isLoading" class="text-center p-4 text-gray-500">

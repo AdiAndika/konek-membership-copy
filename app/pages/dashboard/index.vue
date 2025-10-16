@@ -1,6 +1,5 @@
 <script setup>
 // --- 1. Impor Modul dan Komponen ---
-// Mengimpor semua fungsi dan komponen yang dibutuhkan dari Vue, Nuxt, dan file lokal.
 import { ref, onMounted, computed } from "vue";
 import { api } from "~/services/api";
 import { useAuth } from "~/composables/useState";
@@ -19,50 +18,41 @@ import { accountsData } from "~/data/accounts.js";
 import PendingStatusModal from "~/components/notifikasi/PendingStatusModal.vue";
 import ReminderPopup from "~/components/notifikasi/ReminderPopup.vue";
 import AccountWaitingModal from "~/components/notifikasi/AccountWaitingModal.vue";
+import ExpiredStatusModal from '~/components/notifikasi/ExpiredStatusModal.vue';
+
 
 // --- 2. Konfigurasi Halaman dan Router ---
-// Menentukan layout default untuk halaman ini.
 definePageMeta({
   layout: "default",
 });
 
-// Menginisialisasi fungsionalitas router dan state autentikasi.
 const auth = useAuth();
 const router = useRouter();
 
 // --- 3. State Management ---
-// Mendefinisikan semua state reaktif yang akan digunakan di dalam komponen.
-
-// Status membership: 'loading', 'active', 'pending', 'non-active'
 const membershipStatus = ref("loading");
-// Nama lengkap pengguna, diambil dari state autentikasi.
 const userFullName = ref(auth.value.user?.full_name || "Pengguna");
-// Detail membership (jika aktif).
 const membershipDetails = ref(null);
-// Daftar invoice/tagihan pengguna.
 const invoices = ref([]);
-// Daftar akun produk yang dimiliki pengguna.
 const membershipAccounts = ref([]);
-// Status loading untuk komponen ProductList dan InvoiceHistory.
 const isLoadingProducts = ref(true);
 const isLoadingInvoices = ref(true);
-// Detail paket membership yang sedang aktif atau pending.
 const packageDetails = ref(null);
 
 // State untuk mengontrol visibilitas modal.
 const showPendingModal = ref(false);
 const showReminderPopup = ref(false);
 const showAccountWaitingModal = ref(false);
+// [PERUBAHAN]: Tambahkan state untuk modal expired
+const showExpiredModal = ref(false);
 
-// **[PERUBAHAN 1]** State untuk menyimpan invoice yang statusnya pending.
-// Ini akan diteruskan ke komponen PendingStatusModal.
 const pendingInvoice = ref(null);
+// [PERUBAHAN]: Tambahkan state untuk invoice expired
+const expiredInvoice = ref(null);
+
 
 // --- 4. Lifecycle Hook: onMounted ---
-// Fungsi ini akan berjalan setelah komponen selesai dimuat di browser.
-// Digunakan untuk mengambil data awal yang dibutuhkan halaman.
 onMounted(async () => {
-  // Jika pengguna tidak login, alihkan ke halaman login.
   if (!auth.value.user || !auth.value.user.id) {
     return router.push("/auth/login");
   }
@@ -71,17 +61,14 @@ onMounted(async () => {
     isLoadingProducts.value = true;
     isLoadingInvoices.value = true;
 
-    // Mengambil detail membership dari API.
     const response = await api.getMembershipDetail(auth.value.user.id);
     const status = response.data?.status?.toLowerCase();
     membershipStatus.value = status || "non-active";
 
-    // Jika status aktif, ambil daftar akun produk.
     if (status === "active") {
       membershipAccounts.value = response.data.pelanggan_membership_akun || [];
     }
 
-    // Selalu ambil detail paket untuk mendapatkan daftar produk yang benar.
     if (response.data?.product_membership_id) {
       const packageResponse = await api.getMembershipPackage(
         response.data.product_membership_id
@@ -89,13 +76,11 @@ onMounted(async () => {
       packageDetails.value = packageResponse.data;
     }
 
-    // Logika spesifik berdasarkan status membership.
     if (status === "active") {
       membershipDetails.value = response.data;
       const invoiceResponse = await api.getInvoiceList(auth.value.user.id);
       invoices.value = invoiceResponse.data || [];
 
-      // Cek sisa masa aktif untuk menampilkan notifikasi pengingat.
       if (response.data?.end_at) {
         const expiryDate = new Date(response.data.end_at);
         const today = new Date();
@@ -107,7 +92,6 @@ onMounted(async () => {
         }
       }
       
-      // Tampilkan modal jika akun sedang disiapkan.
       const totalProductsInPackage =
         packageDetails.value?.product_membership_paket?.length || 0;
       const preparedAccounts = membershipAccounts.value.length;
@@ -119,8 +103,6 @@ onMounted(async () => {
       const invoiceResponse = await api.getInvoiceList(auth.value.user.id);
       invoices.value = invoiceResponse.data || [];
       
-      // **[PERUBAHAN 2]** Cari invoice yang pending dan simpan datanya.
-      // Data ini akan digunakan oleh PendingStatusModal.
       pendingInvoice.value = invoices.value.find(
         (inv) =>
           (inv.status.toLowerCase() === "pending" ||
@@ -128,9 +110,19 @@ onMounted(async () => {
           new Date(inv.due_date) > new Date()
       );
 
-      // Jika ada invoice pending, tampilkan modal.
+      // [PERUBAHAN]: Logika untuk menampilkan notifikasi
       if (pendingInvoice.value) {
+        // Jika ada invoice pending, tampilkan modal pending
         showPendingModal.value = true;
+      } else {
+        // Jika tidak ada invoice pending, cari invoice yang sudah kadaluwarsa
+        expiredInvoice.value = invoices.value.find(
+          (inv) => inv.status.toLowerCase() === "expired"
+        );
+        // Jika ditemukan invoice kadaluwarsa, tampilkan modal kadaluwarsa
+        if (expiredInvoice.value) {
+          showExpiredModal.value = true;
+        }
       }
     }
   } catch (error) {
@@ -143,9 +135,6 @@ onMounted(async () => {
 });
 
 // --- 5. Computed Properties ---
-// Properti turunan yang nilainya dihitung berdasarkan state lain.
-
-// Mengolah data produk untuk ditampilkan di ProductList.
 const productListData = computed(() => {
   if (!packageDetails.value || !packageDetails.value.product_membership_paket) {
     return [];
@@ -196,7 +185,6 @@ const productListData = computed(() => {
   });
 });
 
-// Computed property untuk mengubah background berdasarkan status
 const dashboardStyle = computed(() => {
   if (membershipStatus.value === 'active') {
     return { background: 'linear-gradient(180deg, #0080ff 0%, #fff 25%)' };
@@ -204,10 +192,9 @@ const dashboardStyle = computed(() => {
   if (membershipStatus.value === 'pending') {
     return { background: 'linear-gradient(180deg, #F8A902 0%, #fff 25%)' };
   }
-  return {}; // Untuk non-active, background diatur di komponennya
+  return {};
 });
 
-// State dan fungsi untuk modal detail akun.
 const isModalOpen = ref(false);
 const selectedAccount = ref(null);
 const openAccountModal = (item) => {
@@ -326,6 +313,22 @@ const closeAccountModal = () => { isModalOpen.value = false; };
         <AccountWaitingModal
           v-if="showAccountWaitingModal"
           @close="showAccountWaitingModal = false"
+        />
+      </Transition>
+    </Teleport>
+
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition-opacity duration-200 ease-out"
+        leave-active-class="transition-opacity duration-200 ease-in"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+      >
+        <ExpiredStatusModal
+          v-if="showExpiredModal"
+          :invoice="expiredInvoice"
+          :user-full-name="userFullName"
+          @close="showExpiredModal = false"
         />
       </Transition>
     </Teleport>

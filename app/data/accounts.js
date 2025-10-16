@@ -3,7 +3,7 @@
 // Kunci objek (Netflix, Spotify) digunakan untuk pencocokan
 export const accountsData = {
   'Netflix Premium': { // Kunci disamakan dengan nama produk dari API
-    displayFields: ['title','email', 'password', 'profileName', 'pin'],
+    displayFields: ['title','email', 'password', 'pin'],
     tutorial: [
         "Buka Netflix akses lewat aplikasi (HP/Laptop/Komputer) atau website netflix.com",
         "Login dan masukkan email & password akun yang sudah langganan.",
@@ -44,7 +44,7 @@ export const accountsData = {
         "Pembelian dianggap hangus tanpa pengembalian dana"
     ],
   },
-  'VIU Premium': {
+    'VIU Premium': {
     displayFields: ['title','email', 'password'],
     tutorial: [
         "Buka aplikasi atau website VIU.",
@@ -65,6 +65,27 @@ export const accountsData = {
         "Pembelian dianggap hangus tanpa pengembalian dana"
     ],
   },
+//   'ChatGPT Plus': {
+//     displayFields: ['title','email', 'password'],
+//     tutorial: [
+//         "Masuk ke website chat.openai.com dan login dengan akun yang sudah dilangganan.",
+//         "Pastikan status berlangganan Premium aktif di menu “My Plan”.",
+//         "Jika belum otomatis aktif, lakukan refresh atau logout-login ulang.",
+//         "Pilih model yang tersedia di paket Premium (misalnya GPT‑4.5 atau o1/o3).",
+//         "Mulai gunakan fitur Premium seperti akses model lanjutan, web search, atau upload file."
+//     ],
+//     terms: [
+//         "Akun bersifat sharing, namun profile tetap private. Jadi Mohon gunakan secara bijak dan sesuai aturan yang diberikan.",
+//         "Akun direkomendasikan untuk  diakses via HP, tablet, dan laptop/PC.",
+//         "Sebagai fitur tambahan, akun juga dapat diakses melalui smart TV dan sejenisnya (selama tidak terkena household/kebijakan lain dari netflix)",
+//         "Jangan ubah profil, password, atau pengaturan akun.",
+//         "Hanya bisa digunakan di satu perangkat, jika ingin pindah perangkat silahkan log out dari perangkat sebelumnya"
+//     ],
+//     consequences: [
+//         "Blacklist", 
+//         "Pembelian dianggap hangus tanpa pengembalian dana"
+//     ],
+//   },
   'WeTV Premium': {
     displayFields: ['title','email', 'password'],
     tutorial: [

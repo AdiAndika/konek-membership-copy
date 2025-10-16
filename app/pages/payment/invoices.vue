@@ -120,10 +120,10 @@ const getStatusInfo = (status: string) => {
   if (s === "paid" || s === "berhasil")
     return { text: "Berhasil", class: "bg-green-100 text-green-700" };
   if (s === "pending")
-    return { text: "Pending", class: "bg-amber-100 text-amber-700" };
+    return { text: "Pending", class: "bg-yellow-100 text-yellow-700" };
   if (s === "expired")
-    return { text: "Kedaluwarsa", class: "bg-rose-100 text-rose-700" };
-  return { text: "Gagal", class: "bg-rose-100 text-rose-700" };
+    return { text: "Kedaluwarsa", class: "bg-red-100 text-ted-700" };
+  return { text: "Gagal", class: "bg-red-100 text-red-700" };
 };
 </script>
 

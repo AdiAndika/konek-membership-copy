@@ -64,7 +64,7 @@ const goToInvoice = () => {
         </p>
         <button
           @click="goToInvoice"
-          class="w-full bg-yellow-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors"
+          class="w-full bg-yellow-400 text-white font-bold py-3 px-6 rounded-lg hover:bg-yellow-500 transition-colors"
         >
           Lanjutkan Pembayaran
         </button>

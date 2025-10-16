@@ -89,6 +89,7 @@ const login = async () => {
               <input
                   v-model="phoneNumber"
                   @input="handleInput"
+                  @keydown.enter.prevent="login"
                   type="tel"
                   id="phone-input"
                   class="bg-gray-50 border border-gray-300 text-gray-900 text-base font-semibold rounded-lg focus:ring-blue-200 focus:border-blue-500 block w-full pl-24 p-3.5 placeholder-gray-400 placeholder:text-sm"

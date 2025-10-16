@@ -12,7 +12,7 @@ const auth = useAuth();
 const phoneNumberState = usePhoneNumber();
 const otp = ref(['', '', '', '', '', '']);
 const inputRefs = ref([]);
-const timer = ref(300);
+const timer = ref(90); // Durasi timer diubah menjadi 90 detik
 let timerInterval = null;
 
 const isSuccess = ref(false);
@@ -59,7 +59,7 @@ const startTimer = () => {
 const resendOtp = async () => {
   if (!phoneNumberState.value) return;
   console.log("Mengirim ulang OTP...");
-  timer.value = 300;
+  timer.value = 90; // Durasi timer diubah menjadi 90 detik
   startTimer();
   try {
     await api.checkUserNumber(phoneNumberState.value);
@@ -175,6 +175,7 @@ const verifyOtp = async () => {
                v-model="otp[index - 1]"
                @input="handleInput(index - 1, $event)"
                @keydown="handleBackspace(index - 1, $event)"
+               @keydown.enter.prevent="verifyOtp"
                type="tel"
                maxlength="1"
                pattern="\d*"
